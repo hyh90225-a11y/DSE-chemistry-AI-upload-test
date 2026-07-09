@@ -1,0 +1,1774 @@
+[code_artifact.html](https://github.com/user-attachments/files/29831554/code_artifact.html)
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSE 化学反应方程式与原理交互看板 (Bilingual)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0F1115;
+            color: #BAC3CF;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #161920;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2C3242;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0A84FF;
+        }
+        /* Neon glowing effects */
+        .neon-border-blue {
+            box-shadow: 0 0 15px rgba(10, 132, 255, 0.15);
+            border-color: rgba(10, 132, 255, 0.3);
+        }
+        .glass-panel {
+            background: rgba(22, 25, 32, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .element-card {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .element-card:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 10px 20px rgba(10, 132, 255, 0.2);
+            border-color: rgba(10, 132, 255, 0.6);
+        }
+        .active-card {
+            background: rgba(10, 132, 255, 0.15) !important;
+            border-color: #0A84FF !important;
+            box-shadow: 0 0 20px rgba(10, 132, 255, 0.4) !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen overflow-x-hidden flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="w-full glass-panel border-b border-white/5 sticky top-0 z-50 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/20">
+                🧪
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-white tracking-wide flex items-center gap-2">
+                    DSE 化学反应与原理交互看板 
+                    <span class="text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-mono">Bilingual PRO</span>
+                </h1>
+                <p class="text-xs text-gray-400">HKDSE Chemistry Periodic Table & Reaction Principles Engine (中英雙語對照版)</p>
+            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="flex items-center gap-3 flex-wrap">
+            <!-- Language Switcher -->
+            <button id="lang-toggle" onclick="toggleLanguage()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 transition-all">
+                <i data-lucide="languages" class="w-3.5 h-3.5"></i>
+                <span id="lang-label">繁體中文 / EN</span>
+            </button>
+            <!-- Search & Filters -->
+            <div class="relative">
+                <input type="text" id="global-search" oninput="handleSearch()" placeholder="搜尋元素、方程式、考點 / Search..." class="w-64 bg-[#12141C] border border-white/10 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-1.5 text-xs text-white pl-9 transition-all">
+                <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-500"></i>
+            </div>
+            <!-- Favorites View Button -->
+            <button onclick="toggleFilterFavorites()" id="fav-filter-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 transition-all">
+                <svg id="fav-filter-star" class="w-3.5 h-3.5 text-amber-400 fill-transparent" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                <span id="fav-filter-label">僅看收藏 / Favorites</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 max-w-8xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Side: Periodic Table & Categorized List (7 cols) -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- Quick Category Filter -->
+            <div class="glass-panel rounded-xl p-4 flex flex-col gap-3">
+                <span class="text-xs font-semibold text-gray-400 flex items-center gap-1.5">
+                    <i data-lucide="filter" class="w-3.5 h-3.5"></i> 考點分類檢索 / Concept Filters
+                </span>
+                <div class="flex flex-wrap gap-2" id="category-filters">
+                    <!-- Dynamic categories injected by JS -->
+                </div>
+            </div>
+
+            <!-- Periodic Grid (First 20 Elements) -->
+            <div class="glass-panel rounded-2xl p-6 relative overflow-hidden">
+                <div class="absolute -top-20 -left-20 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-20 -right-20 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm font-semibold text-white flex items-center gap-1.5">
+                        <i data-lucide="grid" class="w-4 h-4 text-blue-400"></i> 前 20 號元素週期網格 / Interactive Grid
+                    </h2>
+                    <span class="text-[10px] text-gray-400">點擊元素開啟雙語大綱 / Click to reveal syllabus</span>
+                </div>
+
+                <!-- Periodic Table Grid -->
+                <div class="grid grid-cols-5 md:grid-cols-5 gap-3.5" id="periodic-grid">
+                    <!-- Elements will be generated here dynamically -->
+                </div>
+
+                <!-- Color Codes Legend -->
+                <div class="mt-5 pt-4 border-t border-white/5 flex flex-wrap gap-4 text-[10px] text-gray-400 justify-center">
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-blue-500/20 border border-blue-500/40"></span> 活潑金屬 / Reactive Metals</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-500/20 border border-emerald-500/40"></span> 准金屬 / Metalloids</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-amber-500/20 border border-amber-500/40"></span> 非金屬 / Non-metals</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-purple-500/20 border border-purple-500/40"></span> 惰性氣體 / Noble Gases</span>
+                </div>
+            </div>
+
+            <!-- Global DSE High-Frequency Knowledge Cards -->
+            <div class="glass-panel rounded-2xl p-5 flex-1 min-h-[250px] flex flex-col">
+                <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-1.5">
+                    <i data-lucide="award" class="w-4 h-4 text-amber-400"></i> DSE 高頻反應考點速查 / High-yield Focus (中英對照)
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto flex-1 max-h-[280px] pr-2" id="quick-dse-tips">
+                    <!-- Quick tips loaded via JS -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Side: Details Pane (5 cols) -->
+        <section class="lg:col-span-5 glass-panel rounded-2xl border border-white/5 p-6 flex flex-col h-[calc(100vh-140px)] sticky top-24" id="details-pane">
+            <!-- Dynamic Details content will be loaded here. Default state shown first -->
+            <div id="details-placeholder" class="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <div class="w-16 h-16 rounded-full bg-blue-500/5 flex items-center justify-center border border-blue-500/15 mb-4 animate-pulse">
+                    <i data-lucide="info" class="w-8 h-8 text-blue-400"></i>
+                </div>
+                <h3 class="text-white font-medium mb-1">未選擇任何元素 / No Element Selected</h3>
+                <p class="text-xs text-gray-400 max-w-xs">
+                    請在左側點擊任意一個元素卡片，即可載入該元素的詳細物理性質、化學反應方程式、DSE 必考原理及雙語模擬問答。
+                </p>
+                <div class="mt-6 flex flex-wrap gap-2 justify-center max-w-sm">
+                    <button onclick="selectElement('Na')" class="text-xs px-2.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-md transition-all">試試點擊 11號 鈉 (Na)</button>
+                    <button onclick="selectElement('Cl')" class="text-xs px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-md transition-all">試試點击 17号 氯 (Cl)</button>
+                </div>
+            </div>
+
+            <!-- Element Detail Content Structure (Hidden initially) -->
+            <div id="details-content" class="hidden h-full flex flex-col justify-between overflow-y-auto">
+                <!-- Header with Symbol and Favorite Button -->
+                <div>
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-3">
+                            <div id="detail-symbol-box" class="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-black text-white relative">
+                                <span id="detail-symbol">H</span>
+                                <span id="detail-number" class="absolute top-1 left-1.5 text-[9px] font-mono opacity-80">1</span>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                                    <span id="detail-name-zh">氢</span>
+                                    <span id="detail-name-en" class="text-sm font-normal text-gray-400">Hydrogen</span>
+                                </h2>
+                                <p class="text-xs text-gray-400">相對原子質量 / Relative Mass (A<sub>r</sub>): <span id="detail-mass" class="font-mono">1.008</span></p>
+                            </div>
+                        </div>
+                        <div class="flex gap-1.5">
+                            <button id="detail-fav-btn" onclick="toggleFavoriteCurrent()" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all" title="加入收藏 / Favorite">
+                                <svg id="detail-fav-star" class="w-4 h-4 text-gray-400 fill-transparent" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                            </button>
+                            <button id="detail-download-btn" onclick="downloadStudyCard()" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all" title="導出學習卡 / Export Card">
+                                <i data-lucide="download" class="w-4 h-4 text-gray-400"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Tabs -->
+                    <div class="flex border-b border-white/5 mb-4 text-xs gap-1">
+                        <button onclick="switchTab('props')" id="tab-props" class="px-3 py-2 border-b-2 border-blue-500 text-blue-400 font-medium transition-all">性質大綱 / Props</button>
+                        <button onclick="switchTab('eqs')" id="tab-eqs" class="px-3 py-2 border-b-2 border-transparent text-gray-400 hover:text-white transition-all">必考方程式 / Equations</button>
+                        <button onclick="switchTab('practice')" id="tab-practice" class="px-3 py-2 border-b-2 border-transparent text-gray-400 hover:text-white transition-all">模考演練 / Mock Test</button>
+                    </div>
+
+                    <!-- Tab Content: Properties -->
+                    <div id="content-props" class="space-y-4">
+                        <!-- Physical Properties Block -->
+                        <div class="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                            <h4 class="text-xs font-semibold text-white mb-2.5 flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span> 物理性質 / Physical Properties
+                            </h4>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="bg-black/20 p-2 rounded">
+                                    <span class="text-gray-500 block text-[10px]">常溫狀態 / State</span>
+                                    <span id="prop-state" class="text-gray-200 font-medium">氣態</span>
+                                </div>
+                                <div class="bg-black/20 p-2 rounded">
+                                    <span class="text-gray-500 block text-[10px]">外觀描述 / Appearance</span>
+                                    <span id="prop-appearance" class="text-gray-200 font-medium">無色無味</span>
+                                </div>
+                                <div class="bg-black/20 p-2 rounded">
+                                    <span class="text-gray-500 block text-[10px]">熔點 / Melting Point</span>
+                                    <span id="prop-mp" class="text-gray-200 font-mono">-259.2 ℃</span>
+                                </div>
+                                <div class="bg-black/20 p-2 rounded">
+                                    <span class="text-gray-500 block text-[10px]">沸點 / Boiling Point</span>
+                                    <span id="prop-bp" class="text-gray-200 font-mono">-252.9 ℃</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chemical Overview Block -->
+                        <div class="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                            <h4 class="text-xs font-semibold text-white mb-2.5 flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> 化學性質概要 / Chemical Summary (雙語)
+                            </h4>
+                            <div class="text-xs space-y-2.5">
+                                <div>
+                                    <span class="text-gray-500 block text-[10px]">常見氧化態 / Common Oxidation States</span>
+                                    <span id="chem-states" class="text-blue-300 font-mono font-medium">+1, -1, 0</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500 block text-[10px]">典型性質 / Reactive Tendency</span>
+                                    <p id="chem-summary" class="text-gray-300 mt-1 leading-relaxed text-[11px]">
+                                        与非金属元素反应形成共价化合物；与活泼金属反应形成离子型氢化物。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Content: Equations -->
+                    <div id="content-eqs" class="hidden space-y-4">
+                        <div class="flex justify-between items-center text-[10px] text-gray-500">
+                            <span>點擊複製方程式 / Copy Formula</span>
+                            <div class="flex gap-2">
+                                <button onclick="setEqFormat('std')" id="fmt-std" class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">標準</button>
+                                <button onclick="setEqFormat('latex')" id="fmt-latex" class="px-1.5 py-0.5 rounded hover:bg-white/5">LaTeX</button>
+                            </div>
+                        </div>
+                        <div class="space-y-3 max-h-[320px] overflow-y-auto pr-1" id="equations-list">
+                            <!-- Dynamic equations loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Tab Content: Practice -->
+                    <div id="content-practice" class="hidden space-y-4">
+                        <div class="bg-[#191D26] border border-blue-500/10 rounded-xl p-4 flex flex-col gap-3">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-bold">模擬題 / Mock Question</span>
+                            </div>
+                            <p id="practice-question" class="text-[12px] text-gray-200 leading-relaxed font-medium">
+                                寫出氫與氧在充足氧氣下燃氣的方程式，並說明觀察。
+                            </p>
+                            
+                            <!-- Robust non-crashing Toggle Button using inline path updates -->
+                            <button onclick="toggleAnswer()" class="text-xs bg-white/5 hover:bg-white/10 border border-white/5 py-1.5 rounded-lg text-gray-300 flex items-center justify-center gap-1.5 transition-all">
+                                <svg id="answer-eye-icon" class="w-3.5 h-3.5 text-gray-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <span id="toggle-answer-text">顯示答案與解題關鍵 / Reveal Answer</span>
+                            </button>
+
+                            <div id="practice-answer-box" class="hidden bg-black/30 rounded-lg p-3 border-l-2 border-emerald-500 text-xs">
+                                <span class="text-emerald-400 font-semibold block mb-1">評分要點 / Marking Scheme (Bilingual):</span>
+                                <ul id="practice-points" class="list-disc pl-4 space-y-1.5 text-gray-300 text-[11px]">
+                                    <!-- Dynamic marking points -->
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Warnings & Traps Block -->
+                        <div class="bg-red-500/5 border border-red-500/10 rounded-xl p-4">
+                            <h4 class="text-xs font-semibold text-red-400 mb-2 flex items-center gap-1.5">
+                                <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> 避坑要點 / Precaution & Traps
+                            </h4>
+                            <p id="practice-warning" class="text-[11px] text-gray-300 leading-relaxed">
+                                H2燃烧必须远离火源。高纯度的 H2 与 O2 混合在点火时会发生猛烈爆炸。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Quick Copy card -->
+                <div class="mt-6 pt-4 border-t border-white/5">
+                    <div class="bg-black/40 rounded-xl p-3 flex justify-between items-center gap-2">
+                        <div class="truncate">
+                            <span class="text-[9px] text-gray-500 block uppercase font-bold tracking-wider">複製用學習卡 / Study Card Text</span>
+                            <span id="quick-copy-text" class="text-xs text-gray-300 truncate block font-mono">2H₂ (g) + O₂ (g) → 2H₂O (l)</span>
+                        </div>
+                        <button onclick="copyStudyCardText()" class="px-2.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs font-medium border border-blue-500/20 flex items-center gap-1.5 transition-all shrink-0">
+                            <i data-lucide="copy" class="w-3 h-3"></i> 複製 / Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Global Floating Action Button for Concept Guide -->
+    <div class="fixed bottom-6 right-6 z-40">
+        <button onclick="openConceptGuide()" class="w-12 h-12 rounded-full bg-blue-600 text-white shadow-xl flex items-center justify-center hover:bg-blue-500 transition-all hover:scale-110 group" title="DSE 考纲核心实验视频/重点速览">
+            <i data-lucide="book-open" class="w-5 h-5 group-hover:rotate-6 transition-transform"></i>
+        </button>
+    </div>
+
+    <!-- Modals: Concept Guide -->
+    <div id="concept-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-[#12141C] border border-white/10 rounded-2xl max-w-lg w-full p-6 relative">
+            <button onclick="closeConceptGuide()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-1.5">
+                📘 DSE 化學必背核心知識點 / Core Syllabus (Bilingual)
+            </h3>
+            <p class="text-xs text-gray-400 mb-4">全面覆蓋前 20 號元素的 DSE 金屬活動性順序、酸鹼常考原理及典型實驗操作。</p>
+            
+            <div class="space-y-3.5 max-h-[380px] overflow-y-auto pr-1">
+                <div class="bg-white/[0.02] p-3 rounded-lg border border-white/5">
+                    <span class="text-xs font-semibold text-blue-400 block mb-1">1. 金屬活動性順序 (Reactivity Series)</span>
+                    <p class="text-[11px] text-gray-300 leading-relaxed">
+                        K &gt; Ca &gt; Na &gt; Mg &gt; Al ... K, Ca, Na react vigorously with cold water to produce alkali and hydrogen gas; Mg reacts slowly with hot water, and vigorously with steam to form MgO.
+                    </p>
+                    <p class="text-[11px] text-gray-400 mt-1">
+                        K, Ca, Na 與冷水劇烈反應，生成鹼與氫氣；Mg 與冷水反應緩慢，與熱蒸汽發生劇烈置換，生成 MgO 與氫氣。
+                    </p>
+                </div>
+                <div class="bg-white/[0.02] p-3 rounded-lg border border-white/5">
+                    <span class="text-xs font-semibold text-emerald-400 block mb-1">2. 兩性氧化物與氫氧化物 (Amphoteric Properties)</span>
+                    <p class="text-[11px] text-gray-300 leading-relaxed">
+                        Within the first 20 elements, <strong>Be (Beryllium)</strong> and <strong>Al (Aluminium)</strong> exhibit amphoteric properties. They react with both strong acids and strong alkalis (e.g. NaOH) to release hydrogen gas.
+                    </p>
+                    <p class="text-[11px] text-gray-400 mt-1">
+                        前20號元素中，<strong>Be (鈹)</strong> 和 <strong>Al (鋁)</strong> 具有顯著的兩性。其單質與氧化物既可溶於強酸，又能溶於強鹼（如 NaOH）並放出氫氣。
+                    </p>
+                </div>
+                <div class="bg-white/[0.02] p-3 rounded-lg border border-white/5">
+                    <span class="text-xs font-semibold text-purple-400 block mb-1">3. 鹵素規律 (Halogens Displacement)</span>
+                    <p class="text-[11px] text-gray-300 leading-relaxed">
+                        As atomic number increases in Group VIIA (F, Cl), oxidising power decreases. Cl₂ undergoes disproportionation in cold dilute alkalis, forming Cl⁻ and ClO⁻.
+                    </p>
+                    <p class="text-[11px] text-gray-400 mt-1">
+                        第 VIIA 族（F, Cl）隨原子序增加，氧化能力逐漸減弱。Cl₂ 與冷稀鹼发生歧化反應，生成 Cl⁻ 和 ClO⁻（次氯酸根）。
+                    </p>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeConceptGuide()" class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium text-white transition-all">知道了 / Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Embedded Scripts with Database -->
+    <script>
+        // Database configured specifically with bilingual mappings for HKDSE requirements.
+        const DB_ELEMENTS = {
+            "H": {
+                "symbol": "H",
+                "nameZhSim": "氢",
+                "nameZhTrad": "氫",
+                "nameEn": "Hydrogen",
+                "atomicNumber": 1,
+                "atomicMass": "1.008",
+                "category": "nonmetal",
+                "stateAtRT": "气体 / 氣體 / Gas",
+                "appearance": "无色无味气体 / 無色無味氣體 / Colorless gas",
+                "meltingPoint": "-259.2 ℃",
+                "boilingPoint": "-252.9 ℃",
+                "oxidationStates": "+1, -1, 0",
+                "chemSummary": "高度易燃。与非金属结合（如 O2, Cl2）表现还原性。 (Highly flammable. Combines with non-metals showing reducing action.)",
+                "chemSummaryTrad": "高度易燃。與非金屬結合（如 O2, Cl2）展現還原性。 (Highly flammable. Combines with non-metals showing reducing action.)",
+                "equations": [
+                    {
+                        "std": "2H₂ (g) + O₂ (g) → 2H₂O (l)",
+                        "latex": "2H_2(g) + O_2(g) \\rightarrow 2H_2O(l)",
+                        "tags": ["氧化还原 / Redox", "放热反应 / Exothermic"],
+                        "tagsTrad": ["氧化還原 / Redox", "放熱反應 / Exothermic"],
+                        "explanation": "氢在氧中剧烈燃烧，产生淡蓝色火焰并放热生成水。 (Hydrogen burns in oxygen with a pale blue flame to produce water.)",
+                        "explanationTrad": "氫在氧中劇烈燃燒，產生淡藍色火焰並放熱生成水。 (Hydrogen burns in oxygen with a pale blue flame to produce water.)"
+                    },
+                    {
+                        "std": "CuO (s) + H₂ (g) → Cu (s) + H₂O (g)",
+                        "latex": "CuO(s) + H_2(g) \\rightarrow Cu(s) + H_2O(g)",
+                        "tags": ["氧化还原 / Redox", "置换 / Displacement"],
+                        "tagsTrad": ["氧化還原 / Redox", "置換 / Displacement"],
+                        "explanation": "黑色氧化铜被还原为红色的铜。 (Black copper(II) oxide is reduced to reddish copper metal.)",
+                        "explanationTrad": "黑色氧化銅被還原為紅色的銅。 (Black copper(II) oxide is reduced to reddish copper metal.)"
+                    }
+                ],
+                "practice": {
+                    "question": "在点燃氢气之前，最重要的步骤是什么？写出原因。 / What is the most critical step before lighting hydrogen? Explain why.",
+                    "questionTrad": "在點燃氫氣之前，最重要的步驟是什麼？寫出原因。 / What is the most critical step before lighting hydrogen? Explain why.",
+                    "points": [
+                        "验纯（Test for purity） / Test for gas purity.",
+                        "混有空气的氢气在点燃时可能会发生剧烈爆炸。 / Mixtures of hydrogen and air can explode violently when ignited.",
+                        "听到轻微‘啵’声代表安全。 / A squeaky 'pop' sound indicates impurities; a mild whoosh means safe."
+                    ],
+                    "pointsTrad": [
+                        "驗純（Test for purity） / Test for gas purity.",
+                        "混有空氣的氫氣在點燃時可能會發生劇烈爆炸。 / Mixtures of hydrogen and air can explode violently when ignited.",
+                        "聽到輕微‘啵’聲代表安全。 / A squeaky 'pop' sound indicates impurities; a mild whoosh means safe."
+                    ]
+                },
+                "warning": "易燃：常温下极易点燃。 (Highly flammable in air.)",
+                "warningTrad": "易燃：常溫下極易點燃。 (Highly flammable in air.)"
+            },
+            "He": {
+                "symbol": "He",
+                "nameZhSim": "氦",
+                "nameZhTrad": "氦",
+                "nameEn": "Helium",
+                "atomicNumber": 2,
+                "atomicMass": "4.003",
+                "category": "noble",
+                "stateAtRT": "气体 / 氣體 / Gas",
+                "appearance": "无色无味气体 / 無色無味氣體 / Colorless gas",
+                "meltingPoint": "-272.2 ℃",
+                "boilingPoint": "-268.9 ℃",
+                "oxidationStates": "0",
+                "chemSummary": "惰性气体。拥有极其稳定的 1s² 闭合外壳。 (Inert noble gas with 1s² stable configuration.)",
+                "chemSummaryTrad": "惰性氣體。擁有極其穩定的 1s² 閉合外殼。 (Inert noble gas with 1s² stable configuration.)",
+                "equations": [],
+                "practice": {
+                    "question": "解释为什么氦气（He）比氢气更适合填充气球。 / Why is Helium preferred over Hydrogen to fill balloons?",
+                    "questionTrad": "解釋為什麼氦氣（He）比氫氣更適合填充氣球。 / Why is Helium preferred over Hydrogen to fill balloons?",
+                    "points": [
+                        "氦气是不活泼的，没有火灾或爆炸风险。 / Helium is inert, posing no fire or explosion hazards.",
+                        "而氢气具有高可燃性，不安全。 / Hydrogen is highly flammable and dangerous."
+                    ],
+                    "pointsTrad": [
+                        "氦氣是不活潑的，沒有火災或爆炸風險。 / Helium is inert, posing no fire or explosion hazards.",
+                        "而氫氣具有高可燃性，不安全。 / Hydrogen is highly flammable and dangerous."
+                    ]
+                },
+                "warning": "极度稳定：几乎不形成任何结合物。 (Inert; no hazard.)",
+                "warningTrad": "極度穩定：幾乎不形成任何結合物。 (Inert; no hazard.)"
+            },
+            "Li": {
+                "symbol": "Li",
+                "nameZhSim": "锂",
+                "nameZhTrad": "鋰",
+                "nameEn": "Lithium",
+                "atomicNumber": 3,
+                "atomicMass": "6.941",
+                "category": "metal",
+                "stateAtRT": "固体 / 固體 / Solid",
+                "appearance": "银白色软金属 / 銀白色軟金屬 / Silvery white soft metal",
+                "meltingPoint": "180.5 ℃",
+                "boilingPoint": "1342 ℃",
+                "oxidationStates": "+1, 0",
+                "chemSummary": "最轻的碱金属。可与水反应生成氢气，反应相对钠缓和。 (Lightest alkali metal. Reacts with water moderately.)",
+                "chemSummaryTrad": "最輕的鹼金屬。可與水反應生成氫氣，反應相對鈉緩和。 (Lightest alkali metal. Reacts with water moderately.)",
+                "equations": [
+                    {
+                        "std": "2Li (s) + 2H₂O (l) → 2LiOH (aq) + H₂ (g) ↑",
+                        "latex": "2Li(s) + 2H_2O(l) \\rightarrow 2LiOH(aq) + H_2(g)\\uparrow",
+                        "tags": ["置换 / Displacement", "氧化还原 / Redox"],
+                        "tagsTrad": ["置換 / Displacement", "氧化還原 / Redox"],
+                        "explanation": "产生稳定的氢气泡，生成强碱性的氢氧化锂。 (Generates bubbles of H₂ slowly and forms alkaline LiOH.)",
+                        "explanationTrad": "產生穩定的氫氣泡，生成強鹼性的氫氧化鋰。 (Generates bubbles of H₂ slowly and forms alkaline LiOH.)"
+                    }
+                ],
+                "practice": {
+                    "question": "为何锂不能像钠一样储存在常规煤油中？ / Why can't Lithium be stored in ordinary kerosene?",
+                    "questionTrad": "為何鋰不能像鈉一樣儲存在常規煤油中？ / Why can't Lithium be stored in ordinary kerosene?",
+                    "points": [
+                        "锂的密度极低，会漂浮在煤油上。 / Lithium's density is extremely low; it floats on kerosene.",
+                        "必须储存在粘稠的凡士林中。 / It must be stored coated in thick petroleum jelly (Vaseline)."
+                    ],
+                    "pointsTrad": [
+                        "鋰的密度極低，會漂浮在煤油上。 / Lithium's density is extremely low; it floats on kerosene.",
+                        "必須儲存在粘稠的凡士林中。 / It must be stored coated in thick petroleum jelly (Vaseline)."
+                    ]
+                },
+                "warning": "活性：严禁湿手触摸。 (Corrosive on wet skin.)",
+                "warningTrad": "活性：嚴禁濕手觸摸。 (Corrosive on wet skin.)"
+            },
+            "Be": {
+                "symbol": "Be",
+                "nameZhSim": "铍",
+                "nameZhTrad": "鈹",
+                "nameEn": "Beryllium",
+                "atomicNumber": 4,
+                "atomicMass": "9.012",
+                "category": "metalloid",
+                "stateAtRT": "固体 / 固體 / Solid",
+                "appearance": "钢灰色硬金属 / 鋼灰色硬金屬 / Steel gray hard metal",
+                "meltingPoint": "1287 ℃",
+                "boilingPoint": "2469 ℃",
+                "oxidationStates": "+2, 0",
+                "chemSummary": "具有两性。既溶于酸，又溶于强碱。 (Amphoteric. Dissolves in both acids and strong alkalis.)",
+                "chemSummaryTrad": "具有兩性。既溶於酸，又溶於強鹼。 (Amphoteric. Dissolves in both acids and strong alkalis.)",
+                "equations": [
+                    {
+                        "std": "Be (s) + 2HCl (aq) → BeCl₂ (aq) + H₂ (g) ↑",
+                        "latex": "Be(s) + 2HCl(aq) \\rightarrow BeCl_2(aq) + H_2(g)\\uparrow",
+                        "tags": ["酸碱 / Acid-Base", "置换 / Displacement"],
+                        "tagsTrad": ["酸鹼 / Acid-Base", "置換 / Displacement"],
+                        "explanation": "与盐酸反应释放氢气。 (Reacts with hydrochloric acid releasing H₂ gas.)",
+                        "explanationTrad": "與鹽酸反應釋放氫氣。 (Reacts with hydrochloric acid releasing H₂ gas.)"
+                    }
+                ],
+                "practice": {
+                    "question": "如何以反应证明铍的两性？ / How to prove the amphoteric nature of Beryllium?",
+                    "questionTrad": "如何以反應證明鈹的兩性？ / How to prove the amphoteric nature of Beryllium?",
+                    "points": [
+                        "加入强酸发生反应产生氢气。 / React it with strong acid to produce hydrogen.",
+                        "加入强碱（NaOH）亦发生反应产生氢气。 / React it with strong alkali to also yield hydrogen."
+                    ],
+                    "pointsTrad": [
+                        "加入強酸發生反應產生氫氣。 / React it with strong acid to produce hydrogen.",
+                        "加入強鹼（NaOH）亦發生反應產生氫氣。 / React it with strong alkali to also yield hydrogen."
+                    ]
+                },
+                "warning": "毒性：铍灰尘吸入具有高致癌性。 (Beryllium dust is highly toxic and carcinogenic.)",
+                "warningTrad": "毒性：鈹灰塵吸入具有高致癌性。 (Beryllium dust is highly toxic and carcinogenic.)"
+            },
+            "B": {
+                "symbol": "B",
+                "nameZhSim": "硼",
+                "nameZhTrad": "硼",
+                "nameEn": "Boron",
+                "atomicNumber": 5,
+                "atomicMass": "10.81",
+                "category": "metalloid",
+                "stateAtRT": "固体 / 固體 / Solid",
+                "appearance": "黑色或棕色晶体 / 黑色或棕色晶體 / Dark brown powder",
+                "meltingPoint": "2076 ℃",
+                "boilingPoint": "3927 ℃",
+                "oxidationStates": "+3, 0",
+                "chemSummary": "非金属类金属。具有高熔点。 (Non-metal metalloid with high melting point.)",
+                "chemSummaryTrad": "非金屬類金屬。具有高熔點。 (Non-metal metalloid with high melting point.)",
+                "equations": [],
+                "practice": {
+                    "question": "列出硼在半导体工业的主要用途。 / What is the primary use of Boron in semiconductor industry?",
+                    "questionTrad": "列出硼在半導體工業的主要用途。 / What is the primary use of Boron in semiconductor industry?",
+                    "points": [
+                        "用作P型半导体的掺杂剂。 / Used as a dopant to create P-type semiconductors."
+                    ],
+                    "pointsTrad": [
+                        "用作P型半導體的摻雜劑。 / Used as a dopant to create P-type semiconductors."
+                    ]
+                },
+                "warning": "小心：硼酸类常作为农药，有毒。 (Borate compounds are toxic.)",
+                "warningTrad": "小心：硼酸類常作為農藥，有毒。 (Borate compounds are toxic.)"
+            },
+            "C": {
+                "symbol": "C",
+                "nameZhSim": "碳",
+                "nameZhTrad": "碳",
+                "nameEn": "Carbon",
+                "atomicNumber": 6,
+                "atomicMass": "12.01",
+                "category": "nonmetal",
+                "stateAtRT": "固体 / 固體 / Solid",
+                "appearance": "黑色固体(石墨) / 黑色固體(石墨) / Black solid (Graphite)",
+                "meltingPoint": "3550 ℃",
+                "boilingPoint": "4027 ℃",
+                "oxidationStates": "+4, +2, 0, -4",
+                "chemSummary": "生命的基础。高温下能还原金属氧化物（如炼铁）。 (Basis of organic chemistry. Excellent reducing agent at high temperatures.)",
+                "chemSummaryTrad": "生命的基礎。高溫下能還原金屬氧化物（如煉鐵）。 (Basis of organic chemistry. Excellent reducing agent at high temperatures.)",
+                "equations": [
+                    {
+                        "std": "C (s) + O₂ (g) → CO₂ (g)",
+                        "latex": "C(s) + O_2(g) \\rightarrow CO_2(g)",
+                        "tags": ["氧化 / Oxidation", "放热 / Exothermic"],
+                        "tagsTrad": ["氧化 / Oxidation", "放熱 / Exothermic"],
+                        "explanation": "碳在足量氧气中燃烧，生成二氧化碳。 (Carbon burns in excess oxygen to yield carbon dioxide.)",
+                        "explanationTrad": "碳在足量氧氣中燃燒，生成二氧化碳。 (Carbon burns in excess oxygen to yield carbon dioxide.)"
+                    },
+                    {
+                        "std": "2Fe₂O₃ (s) + 3C (s) → 4Fe (s) + 3CO₂ (g) ↑",
+                        "latex": "2Fe_2O_3(s) + 3C(s) \\rightarrow 4Fe(s) + 3CO_2(g)\\uparrow",
+                        "tags": ["还原 / Reduction", "金属提取 / Extraction"],
+                        "tagsTrad": ["還原 / Reduction", "金屬提取 / Extraction"],
+                        "explanation": "经典的炼铁反应。焦炭夺去赤铁矿中的氧。 (Classic iron smelting. Carbon reduces iron(III) oxide.)",
+                        "explanationTrad": "經典的煉鐵反應。焦炭奪去赤鐵礦中的氧。 (Classic iron smelting. Carbon reduces iron(III) oxide.)"
+                    }
+                ],
+                "practice": {
+                    "question": "解释为什么石墨能导电而金刚石不能。 / Why does Graphite conduct electricity while Diamond does not?",
+                    "questionTrad": "解釋為什麼石墨能導電而金剛石不能。 / Why does Graphite conduct electricity while Diamond does not?",
+                    "points": [
+                        "石墨晶格内每个碳原子仅有三个外层电子参与共价键结，留有一个自由移动的离域电子。 / In Graphite, each C has one delocalised electron free to move.",
+                        "金刚石呈四面体网络共价，电子全部被束缚。 / Diamond has a rigid network where all valence electrons are localised in covalent bonds."
+                    ],
+                    "pointsTrad": [
+                        "石墨晶格內每個碳原子僅有三個外層電子參與共價鍵結，留有一個自由移動的離域電子。 / In Graphite, each C has one delocalised electron free to move.",
+                        "金剛石呈四面體網絡共價，電子全部被束縛。 / Diamond has a rigid network where all valence electrons are localised in covalent bonds."
+                    ]
+                },
+                "warning": "不完全燃烧会产生剧毒的 CO。 (Incomplete combustion generates highly toxic Carbon Monoxide.)",
+                "warningTrad": "不完全燃燒會產生劇毒的 CO。 (Incomplete combustion generates highly toxic Carbon Monoxide.)"
+            },
+            "N": {
+                "symbol": "N",
+                "nameZhSim": "氮",
+                "nameZhTrad": "氮",
+                "nameEn": "Nitrogen",
+                "atomicNumber": 7,
+                "atomicMass": "14.01",
+                "category": "nonmetal",
+                "stateAtRT": "气体 / 氣體 / Gas",
+                "appearance": "无色无味气体 / 無色無味氣體 / Colorless gas",
+                "meltingPoint": "-210.0 ℃",
+                "boilingPoint": "-195.8 ℃",
+                "oxidationStates": "+5, +4, +3, +2, +1, 0, -3",
+                "chemSummary": "含有氮氮三键 (N≡N)，常温下极其不活泼。 (Features highly stable triple bond N≡N, extremely inert at room temperature.)",
+                "chemSummaryTrad": "含有氮氮三鍵 (N≡N)，常溫下極其不活潑。 (Features highly stable triple bond N≡N, extremely inert at room temperature.)",
+                "equations": [
+                    {
+                        "std": "N₂ (g) + 3H₂ (g) ⇌ 2NH₃ (g)",
+                        "latex": "N_2(g) + 3H_2(g) \\rightleftharpoons 2NH_3(g)",
+                        "tags": ["哈伯法 / Haber", "可逆 / Reversible"],
+                        "tagsTrad": ["哈伯法 / Haber", "可逆 / Reversible"],
+                        "explanation": "工业合成氨。高热高压及铁催化剂。 (Industrial production of ammonia. Requires Fe catalyst, high temperature and pressure.)",
+                        "explanationTrad": "工業合成氨。高熱高壓及鐵催化劑。 (Industrial production of ammonia. Requires Fe catalyst, high temperature and pressure.)"
+                    }
+                ],
+                "practice": {
+                    "question": "为何氮气在常温下很难起反应？ / Why is Nitrogen inert under ambient conditions?",
+                    "questionTrad": "為何氮氣在常溫下很難起反應？ / Why is Nitrogen inert under ambient conditions?",
+                    "points": [
+                        "因为它包含非常稳固的共价三键，其键能极高。 / Due to the strong covalent triple bond with high bond dissociation enthalpy (944 kJ/mol)."
+                    ],
+                    "pointsTrad": [
+                        "因為它包含非常穩固的共價三鍵，其鍵能極高。 / Due to the strong covalent triple bond with high bond dissociation enthalpy (944 kJ/mol)."
+                    ]
+                },
+                "warning": "窒息：泄漏能排挤空气导致窒息。 (Asphyxiation risk in enclosed space.)",
+                "warningTrad": "窒息：洩漏能排擠空氣導致窒息。 (Asphyxiation risk in enclosed space.)"
+            },
+            "O": {
+                "symbol": "O",
+                "nameZhSim": "氧",
+                "nameZhTrad": "氧",
+                "nameEn": "Oxygen",
+                "atomicNumber": 8,
+                "atomicMass": "16.00",
+                "category": "nonmetal",
+                "stateAtRT": "气体 / 氣體 / Gas",
+                "appearance": "无色无味气体 / 無色無味氣體 / Colorless gas",
+                "meltingPoint": "-218.4 ℃",
+                "boilingPoint": "-182.9 ℃",
+                "oxidationStates": "-2, -1, 0",
+                "chemSummary": "强氧化剂。支持呼吸和燃烧。 (Strong oxidising agent. Supports respiration and combustion.)",
+                "chemSummaryTrad": "強氧化劑。支持呼吸和燃燒。 (Strong oxidising agent. Supports respiration and combustion.)",
+                "equations": [
+                    {
+                        "std": "2H₂O₂ (aq) → 2H₂O (l) + O₂ (g) ↑",
+                        "latex": "2H_2O_2(aq) \\xrightarrow{MnO_2} 2H_2O(l) + O_2(g)\\uparrow",
+                        "tags": ["催化分解 / Catalytic", "制氧 / Lab Prep"],
+                        "tagsTrad": ["催化分解 / Catalytic", "製氧 / Lab Prep"],
+                        "explanation": "双氧水以黑色二氧化锰催化产生氧气。 (Catalytic decomposition of hydrogen peroxide using MnO₂.)",
+                        "explanationTrad": "雙氧水以黑色二氧化錳催化產生氧氣。 (Catalytic decomposition of hydrogen peroxide using MnO₂.)"
+                    }
+                ],
+                "practice": {
+                    "question": "写出用带火星木条检验氧气的方法与观察。 / Describe the test and result for Oxygen gas.",
+                    "questionTrad": "寫出用帶火星木條檢驗氧氣的方法與觀察。 / Describe the test and result for Oxygen gas.",
+                    "points": [
+                        "将带火星的木条伸入集气瓶。 / Insert a glowing splint into the gas bottle.",
+                        "木条复燃证明为氧气。 / The glowing splint relights in the presence of oxygen."
+                    ],
+                    "pointsTrad": [
+                        "將帶火星的木條伸入集氣瓶。 / Insert a glowing splint into the gas bottle.",
+                        "木條復燃證明為氧氣。 / The glowing splint relights in the presence of oxygen."
+                    ]
+                },
+                "warning": "助燃：高浓度氧环境极易产生猛烈火灾。 (Highly reactive in fires.)",
+                "warningTrad": "助燃：高濃度氧環境極易產生猛烈火災。 (Highly reactive in fires.)"
+            },
+            "F": {
+                "symbol": "F",
+                "nameZhSim": "氟",
+                "nameZhTrad": "氟",
+                "nameEn": "Fluorine",
+                "atomicNumber": 9,
+                "atomicMass": "19.00",
+                "category": "nonmetal",
+                "stateAtRT": "气体 / 氣體 / Gas",
+                "appearance": "淡黄色气体 / 淡黃色氣體 / Pale yellow gas",
+                "meltingPoint": "-219.6 ℃",
+                "boilingPoint": "-188.1 ℃",
+                "oxidationStates": "-1, 0",
+                "chemSummary": "电负性最强。氧化性极强，遇水剧烈分解。 (Highest electronegativity. Explodes on contact with water.)",
+                "chemSummaryTrad": "電負性最強。氧化性極強，遇水劇烈分解。 (Highest electronegativity. Explodes on contact with water.)",
+                "equations": [
+                    {
+                        "std": "2F₂ (g) + 2H₂O (l) → 4HF (aq) + O₂ (g)",
+                        "latex": "2F_2(g) + 2H_2O(l) \\rightarrow 4HF(aq) + O_2(g)",
+                        "tags": ["剧烈反应 / Violent", "置换 / Displacement"],
+                        "tagsTrad": ["劇烈反應 / Violent", "置換 / Displacement"],
+                        "explanation": "氟能直接夺去水中的氢元素并释出氧气。 (Fluorine attacks water instantly to yield toxic hydrofluoric acid and O₂.)",
+                        "explanationTrad": "氟能直接奪去水中的氫元素並釋出氧氣。 (Fluorine attacks water instantly to yield toxic hydrofluoric acid and O₂.)"
+                    }
+                ],
+                "practice": {
+                    "question": "为何不应在学校制备单质氟？ / Why shouldn't Fluorine gas be prepared in school laboratories?",
+                    "questionTrad": "為何不應在學校製備單質氟？ / Why shouldn't Fluorine gas be prepared in school laboratories?",
+                    "points": [
+                        "氟气剧毒，且生成的 HF 具有强烈的骨骼毒性。 / It is extremely toxic; the produced HF causes deep bone corrosion."
+                    ],
+                    "pointsTrad": [
+                        "氟氣劇毒，且生成的 HF 具有強烈的骨骼毒性。 / It is extremely toxic; the produced HF causes deep bone corrosion."
+                    ]
+                },
+                "warning": "极毒：绝对避免直接接触其产生的 HF 酸。 (Extreme danger: HF is a bone-seeking toxic acid.)",
+                "warningTrad": "極毒：絕對避免直接接觸其產生的 HF 酸。 (Extreme danger: HF is a bone-seeking toxic acid.)"
+            },
+            "Ne": {
+                "symbol": "Ne",
+                "nameZhSim": "氖",
+                "nameZhTrad": "氖",
+                "nameEn": "Neon",
+                "atomicNumber": 10,
+                "atomicMass": "20.18",
+                "category": "noble",
+                "stateAtRT": "气体 / 氣體 / Gas",
+                "appearance": "无色无味气体 / 無色無味氣體 / Colorless gas",
+                "meltingPoint": "-248.6 ℃",
+                "boilingPoint": "-246.1 ℃",
+                "oxidationStates": "0",
+                "chemSummary": "惰性气体。不反应。 (Inert noble gas. Extremely unreactive.)",
+                "chemSummaryTrad": "惰性氣體。不反應。 (Inert noble gas. Extremely unreactive.)",
+                "equations": [],
+                "practice": {
+                    "question": "说明霓虹灯的发光原理。 / Explain how Neon glows in advertising signs.",
+                    "questionTrad": "說明霓虹燈發光原理。 / Explain how Neon glows in advertising signs.",
+                    "points": [
+                        "真空放电管通入高压电，使电子产生能级跃迁释放红光。 / High voltage excites electrons to higher energy levels; they emit orange-red light upon returning."
+                    ],
+                    "pointsTrad": [
+                        "真空放電管通入高壓電，使電子產生能級躍遷釋放紅光。 / High voltage excites electrons to higher energy levels; they emit orange-red light upon returning."
+                    ]
+                },
+                "warning": "低温：液氖温度极低。 (Cryogenic hazard.)",
+                "warningTrad": "低溫：液氖溫度極低。 (Cryogenic hazard.)"
+            },
+            "Na": {
+                "symbol": "Na",
+                "nameZhSim": "钠",
+                "nameZhTrad": "鈉",
+                "nameEn": "Sodium",
+                "atomicNumber": 11,
+                "atomicMass": "22.99",
+                "category": "metal",
+                "stateAtRT": "固体 / 固體 / Solid",
+                "appearance": "银白色软金属 / 銀白色軟金屬 / Silvery white soft metal",
+                "meltingPoint": "97.8 ℃",
+                "boilingPoint": "883 ℃",
+                "oxidationStates": "+1, 0",
+                "chemSummary": "DSE 核心活性金属。遇水发生剧烈置换。 (Highly reactive alkali metal. Explodes on contact with water. Store in paraffin.)",
+                "chemSummaryTrad": "DSE 核心活性金屬。遇水發生劇烈置換。 (Highly reactive alkali metal. Explodes on contact with water. Store in paraffin.)",
+                "equations": [
+                    {
+                        "std": "2Na (s) + 2H₂O (l) → 2NaOH (aq) + H₂ (g) ↑",
+                        "latex": "2Na(s) + 2H_2O(l) \\rightarrow 2NaOH(aq) + H_2(g)\\uparrow",
+                        "tags": ["氧化还原 / Redox", "置换 / Displacement", "放热 / Exothermic"],
+                        "tagsTrad": ["氧化還原 / Redox", "置換 / Displacement", "放熱 / Exothermic"],
+                        "explanation": "钠熔成银色小球，游动并释放气体，酚酞变红。 (Sodium melts into a silvery ball, darts on water surface and produces alkaline NaOH.)",
+                        "explanationTrad": "鈉熔成銀色小球，游動並釋放氣體，酚酞變紅。 (Sodium melts into a silvery ball, darts on water surface and produces alkaline NaOH.)"
+                    },
+                    {
+                        "std": "2Na (s) + Cl₂ (g) → 2NaCl (s)",
+                        "latex": "2Na(s) + Cl_2(g) \\rightarrow 2NaCl(s)",
+                        "tags": ["氧化还原 / Redox", "盐生成 / Salt Prep"],
+                        "tagsTrad": ["氧化還原 / Redox", "鹽生成 / Salt Prep"],
+                        "explanation": "钠在氯气中燃烧，发出强烈的黄色火焰，产生白烟。 (Sodium burns in chlorine gas with a golden-yellow flame, yielding white smoke of NaCl.)",
+                        "explanationTrad": "鈉在氯氣中燃燒，發出強烈的黃色火焰，產生白煙。 (Sodium burns in chlorine gas with a golden-yellow flame, yielding white smoke of NaCl.)"
+                    }
+                ],
+                "practice": {
+                    "question": "叙述钠与水反应的四个核心观察。 / State 4 observations when Sodium reacts with water.",
+                    "questionTrad": "敘述鈉與水反應的四個核心觀察。 / State 4 observations when Sodium reacts with water.",
+                    "points": [
+                        "漂浮于水面（密度低于水）。 / Floats on water (density is less than water).",
+                        "熔成银白色小球（熔点低，且反应剧烈放热）。 / Melts into a silvery ball (highly exothermic, low melting point).",
+                        "四处快速游动并发出‘嘶嘶’声。 / Darts around rapidly with a hissing sound.",
+                        "加入酚酞变粉红色（产生 NaOH 强碱）。 / Solutions turn pink if phenolphthalein is added (forms alkali)."
+                    ],
+                    "pointsTrad": [
+                        "漂浮於水面（密度低於水）。 / Floats on water (density is less than water).",
+                        "熔成銀白色小球（熔點低，且反應劇烈放熱）。 / Melts into a silvery ball (highly exothermic, low melting point).",
+                        "四處快速游動並發出‘嘶嘶’聲。 / Darts around rapidly with a hissing sound.",
+                        "加入酚酞變粉紅色（產生 NaOH 強鹼）。 / Solutions turn pink if phenolphthalein is added (forms alkali)."
+                    ]
+                },
+                "warning": "存放：严禁遇水！必须用煤油完全封盖储存。 (Do NOT let contact water. Store in paraffin.)",
+                "warningTrad": "存放：嚴禁遇水！必須用煤油完全封蓋儲存。 (Do NOT let contact water. Store in paraffin.)"
+            },
+            "Mg": {
+                "symbol": "Mg",
+                "nameZhSim": "镁",
+                "nameZhTrad": "鎂",
+                "nameEn": "Magnesium",
+                "atomicNumber": 12,
+                "atomicMass": "24.31",
+                "category": "metal",
+                "stateAtRT": "固体 / 固體 / Solid",
+                "appearance": "银灰色轻金属 / 銀灰色輕金屬 / Silvery gray light metal",
+                "meltingPoint": "650.0 ℃",
+                "boilingPoint": "1090 ℃",
+                "oxidationStates": "+2, 0",
+                "chemSummary": "与冷水反应缓慢，但能与热水或蒸汽剧烈反应。在 CO2 中仍可自燃。 (Reacts vigorously with steam. Burns in carbon dioxide.)",
+                "chemSummaryTrad": "與冷水反應緩慢，但能與熱水或蒸汽劇烈反應。在 CO2 中仍可自燃。 (Reacts vigorously with steam. Burns in carbon dioxide.)",
+                "equations": [
+                    {
+                        "std": "Mg (s) + 2H₂O (g) → MgO (s) + H₂ (g) ↑",
+                        "latex": "Mg(s) + 2H_2O(g) \\rightarrow MgO(s) + H_2(g)\\uparrow",
+                        "tags": ["置换 / Displacement", "水蒸汽反应 / Steam"],
+                        "tagsTrad": ["置換 / Displacement", "水蒸汽反應 / Steam"],
+                        "explanation": "热的镁粉遇蒸汽猛烈放出白色强光，产生白色固体与氢气。 (Magnesium reacts with steam vigorously with bright white light.)",
+                        "explanationTrad": "熱的鎂粉遇蒸汽猛烈放出白色強光，產生白色固體與氫氣。 (Magnesium reacts with steam vigorously with bright white light.)"
+                    },
+                    {
+                        "std": "2Mg (s) + CO₂ (g) → 2MgO (s) + C (s)",
+                        "latex": "2Mg(s) + CO_2(g) \\rightarrow 2MgO(s) + C(s)",
+                        "tags": ["特殊自燃 / Special combustion"],
+                        "tagsTrad": ["特殊自燃 / Special combustion"],
+                        "explanation": "镁在 CO₂ 中继续剧烈燃烧，生成白色氧化镁并析出黑色的碳（黑色斑点）。 (Magnesium reduces CO₂ to carbon; burns with white flare, leaving black carbon specks.)",
+                        "explanationTrad": "鎂在 CO₂ 中繼續劇烈燃燒，生成白色氧化鎂並析出黑色的碳（黑色斑點）。 (Magnesium reduces CO₂ to carbon; burns with white flare, leaving black carbon specks.)"
+                    }
+                ],
+                "practice": {
+                    "question": "为何不能用 CO₂ 灭火器扑灭金属镁引发的火灾？ / Why can't CO₂ fire extinguishers extinguish a Magnesium fire?",
+                    "questionTrad": "為何不能用 CO₂ 滅火器撲滅金屬鎂引發的火災？ / Why can't CO₂ fire extinguishers extinguish a Magnesium fire?",
+                    "points": [
+                        "镁具有极强还原性，能在 CO₂ 气体中夺氧并持续剧烈燃烧。 / Magnesium is highly reducing; it reduces CO₂ to elemental Carbon.",
+                        "反应产生 MgO 且会放出大量热。 / The reaction is highly exothermic, intensifying the fire."
+                    ],
+                    "pointsTrad": [
+                        "鎂具有極強還原性，能在 CO₂ 氣體中奪氧並持續劇烈燃燒。 / Magnesium is highly reducing; it reduces CO₂ to elemental Carbon.",
+                        "反應產生 MgO 且會放出大量熱。 / The reaction is highly exothermic, intensifying the fire."
+                    ]
+                },
+                "warning": "强光：燃烧时光芒强，会伤眼。 (Never look directly at burning magnesium; emits strong UV.)",
+                "warningTrad": "強光：燃燒時光芒強，會傷眼。 (Never look directly at burning magnesium; emits strong UV.)"
+            },
+            "Al": {
+                "symbol": "Al",
+                "nameZhSim": "铝",
+                "nameZhTrad": "鋁",
+                "nameEn": "Aluminium",
+                "atomicNumber": 13,
+                "atomicMass": "26.98",
+                "category": "metal",
+                "stateAtRT": "固体 / 固體 / Solid",
+                "appearance": "银灰色轻金属 / 銀灰色輕金屬 / Silvery white metal",
+                "meltingPoint": "660.3 ℃",
+                "boilingPoint": "2519 ℃",
+                "oxidationStates": "+3, 0",
+                "chemSummary": "因致密氧化膜保护在空气中稳定。具两性：溶于强酸与强碱。 (Has passive oxide film. Shows amphoteric reactivity with acids & bases.)",
+                "chemSummaryTrad": "因緻密氧化膜保護在空氣中穩定。具兩性：溶於強酸與強鹼。 (Has passive oxide film. Shows amphoteric reactivity with acids & bases.)",
+                "equations": [
+                    {
+                        "std": "2Al (s) + 6H⁺ (aq) → 2Al³⁺ (aq) + 3H₂ (g) ↑",
+                        "latex": "2Al(s) + 6H^+(aq) \\rightarrow 2Al^{3+}(aq) + 3H_2(g)\\uparrow",
+                        "tags": ["酸液置换 / Acid reaction"],
+                        "tagsTrad": ["酸液置換 / Acid reaction"],
+                        "explanation": "酸会溶解掉氧化铝膜后直接与内部铝单质反应，产生氢气。 (Acid dissolves the oxide layer, then reacts with aluminum to release H₂.)",
+                        "explanationTrad": "酸會溶解掉氧化鋁膜後直接與內部鋁單質反應，產生氫氣。 (Acid dissolves the oxide layer, then reacts with aluminum to release H₂.)"
+                    },
+                    {
+                        "std": "2Al (s) + 2NaOH (aq) + 6H₂O (l) → 2Na[Al(OH)₄] (aq) + 3H₂ (g) ↑",
+                        "latex": "2Al(s) + 2NaOH(aq) + 6H_2O(l) \\rightarrow 2Na[Al(OH)_4](aq) + 3H_2(g)\\uparrow",
+                        "tags": ["两性反应 / Amphoteric", "强碱 / Strong base"],
+                        "tagsTrad": ["兩性反應 / Amphoteric", "強鹼 / Strong base"],
+                        "explanation": "铝与 NaOH 反应，产生可溶性配离子 [Al(OH)₄]⁻ 并释放氢气。 (Aluminium dissolves in sodium hydroxide to form tetrahydroxoaluminate.)",
+                        "explanationTrad": "鋁與 NaOH 反應，產生可溶性配離子 [Al(OH)₄]⁻ 並釋放氫氣。 (Aluminium dissolves in sodium hydroxide to form tetrahydroxoaluminate.)"
+                    }
+                ],
+                "practice": {
+                    "question": "铝在金属活动性序中很靠前，为何能用于做日常炊具（如锅）？ / Why is Aluminium suitable for cookware despite its high reactivity?",
+                    "questionTrad": "鋁在金屬活動性序中很靠前，為何能用於做日常炊具（如鍋）？ / Why is Aluminium suitable for cookware despite its high reactivity?",
+                    "points": [
+                        "表面有致密不透水的三氧化二铝保护膜。 / It self-protects via a tough, impervious layer of Al₂O₃ oxide film.",
+                        "注意：不要用铝锅盛放酸性或碱性食物，会溶解膜。 / Do not cook acidic (e.g. tomatoes) or alkaline foods as they dissolve the film."
+                    ],
+                    "pointsTrad": [
+                        "表面有緻密不透水的三氧化二鋁保護膜。 / It self-protects via a tough, impervious layer of Al₂O₃ oxide film.",
+                        "注意：不要用鋁鍋盛放酸性或鹼性食物，會溶解膜。 / Do not cook acidic (e.g. tomatoes) or alkaline foods as they dissolve the film."
+                    ]
+                },
+                "warning": "化学禁忌：防酸防碱溶解穿孔。 (Subject to chemical corrosion under acidic/alkaline conditions.)",
+                "warningTrad": "化學禁忌：防酸防鹼溶解穿孔。 (Subject to chemical corrosion under acidic/alkaline conditions.)"
+            },
+            "Si": {
+                "symbol": "Si",
+                "nameZhSim": "硅",
+                "nameZhTrad": "矽",
+                "nameEn": "Silicon",
+                "atomicNumber": 14,
+                "atomicMass": "28.09",
+                "category": "metalloid",
+                "stateAtRT": "固体 / 固體 / Solid",
+                "appearance": "暗灰色金属光泽固体 / 暗灰色金屬光澤固體 / Dark gray shiny solid",
+                "meltingPoint": "1414 ℃",
+                "boilingPoint": "3265 ℃",
+                "oxidationStates": "+4, -4, 0",
+                "chemSummary": "半导体主晶。常温下不活跃，能溶于热强碱。 (Giant covalent grid. Semimetal; reacts with hot concentrated alkalis.)",
+                "chemSummaryTrad": "半導體主晶。常溫下不活躍，能溶於熱強鹼。 (Giant covalent grid. Semimetal; reacts with hot concentrated alkalis.)",
+                "equations": [
+                    {
+                        "std": "Si (s) + 2NaOH (aq) + H₂O (l) → Na₂SiO₃ (aq) + 2H₂ (g) ↑",
+                        "latex": "Si(s) + 2NaOH(aq) + H_2O(l) \\rightarrow Na_2SiO_3(aq) + 2H_2(g)\\uparrow",
+                        "tags": ["强碱反应 / Alkaline attack"],
+                        "tagsTrad": ["強鹼反應 / Alkaline attack"],
+                        "explanation": "在热强碱中缓慢反应，生成硅酸钠并放出氢气。 (Reacts with warm sodium hydroxide, releasing hydrogen gas.)",
+                        "explanationTrad": "在熱強鹼中緩慢反應，生成矽酸鈉並放出氫氣。 (Reacts with warm sodium hydroxide, releasing hydrogen gas.)"
+                    }
+                ],
+                "practice": {
+                    "question": "简单说明晶体硅的共价网状结构与高熔点关系。 / How is silicon's high melting point related to its lattice structure?",
+                    "questionTrad": "簡單說明晶體矽的共價網狀結構與高熔點關係。 / How is silicon's high melting point related to its lattice structure?",
+                    "points": [
+                        "硅是巨型共价网状结构，原子以四面体方式牢固键结。 / It is a giant covalent network where silicon atoms are linked by strong covalent bonds.",
+                        "需要克服巨大的共价键能才能熔化，因而熔点极高。 / Melting requires breaking many strong bonds, demanding high thermal energy."
+                    ],
+                    "pointsTrad": [
+                        "矽是巨型共價網狀結構，原子以四面體方式牢固鍵結。 / It is a giant covalent network where silicon atoms are linked by strong covalent bonds.",
+                        "需要克服巨大的共價鍵能才能熔化，因而熔點極高。 / Melting requires breaking many strong bonds, demanding high thermal energy."
+                    ]
+                },
+                "warning": "长期吸入石英粉尘会致“矽肺病”。 (Prolonged inhalation of silica dust causes Silicosis.)",
+                "warningTrad": "長期吸入石英粉塵會致“矽肺病”。 (Prolonged inhalation of silica dust causes Silicosis.)"
+            },
+            "P": {
+                "symbol": "P",
+                "nameZhSim": "磷",
+                "nameZhTrad": "磷",
+                "nameEn": "Phosphorus",
+                "atomicNumber": 15,
+                "atomicMass": "30.97",
+                "category": "nonmetal",
+                "stateAtRT": "固体 / 固體 / Solid",
+                "appearance": "白磷(蜡状)或红磷(粉末) / 白磷(蠟狀)或紅磷(粉末) / Red powder (Red P)",
+                "meltingPoint": "44.1 ℃ (白磷)",
+                "boilingPoint": "280.5 ℃ (白磷)",
+                "oxidationStates": "+5, +3, 0, -3",
+                "chemSummary": "同素异形体包括白磷和红磷。白磷着火点极低（40℃）且有剧毒。 (Has allotropes. White P is highly toxic, and self-ignites in air at 40℃.)",
+                "chemSummaryTrad": "同素異形體包括白磷和紅磷。白磷著火點極低（40℃）且有劇毒。 (Has allotropes. White P is highly toxic, and self-ignites in air at 40℃.)",
+                "equations": [
+                    {
+                        "std": "P₄ (s) + 5O₂ (g) → P₄O₁₀ (s)",
+                        "latex": "P_4(s) + 5O_2(g) \\rightarrow P_4O_{10}(s)",
+                        "tags": ["氧化 / Oxidation", "剧烈自燃 / Self-ignition"],
+                        "tagsTrad": ["氧化 / Oxidation", "劇烈自燃 / Self-ignition"],
+                        "explanation": "白磷在空气中极易自燃，发出白光产生刺鼻浓白烟。 (Phosphorus burns with dense white clouds of tetraphosphorus decaoxide.)",
+                        "explanationTrad": "白磷在空氣中極易自燃，發出白光產生刺鼻濃白煙。 (Phosphorus burns with dense white clouds of tetraphosphorus decaoxide.)"
+                    }
+                ],
+                "practice": {
+                    "question": "实验室应该如何安全储存剧毒的白磷？ / How is highly toxic White Phosphorus safely stored in lab?",
+                    "questionTrad": "實驗室應該如何安全儲存劇毒的白磷？ / How is highly toxic White Phosphorus safely stored in lab?",
+                    "points": [
+                        "为了完全隔绝空气中的氧，必须完全浸没在冷水中。 / Under cold water to prevent slow oxidation and self-ignition in air."
+                    ],
+                    "pointsTrad": [
+                        "為了完全隔絕空氣中的氧，必須完全浸沒在冷水中。 / Under cold water to prevent slow oxidation and self-ignition in air."
+                    ]
+                },
+                "warning": "白磷有剧毒并能致皮肤严重化学灼伤。 (White phosphorus causes severe, deep chemical burns.)",
+                "warningTrad": "白磷有劇毒並能致皮膚嚴重化學灼傷。 (White phosphorus causes severe, deep chemical burns.)"
+            },
+            "S": {
+                "symbol": "S",
+                "nameZhSim": "硫",
+                "nameZhTrad": "硫",
+                "nameEn": "Sulfur",
+                "atomicNumber": 16,
+                "atomicMass": "32.07",
+                "category": "nonmetal",
+                "stateAtRT": "固体 / 固體 / Solid",
+                "appearance": "黄色脆性固体 / 黃色脆性固體 / Yellow brittle solid",
+                "meltingPoint": "115.2 ℃",
+                "boilingPoint": "444.6 ℃",
+                "oxidationStates": "+6, +4, +2, 0, -2",
+                "chemSummary": "非金属。能被浓硫酸氧化为二氧化硫（归中反应）。 (Non-metal. Easily oxidised by hot concentrated sulfuric acid.)",
+                "chemSummaryTrad": "非金屬。能被濃硫酸氧化為二氧化硫（歸中反應）。 (Non-metal. Easily oxidised by hot concentrated sulfuric acid.)",
+                "equations": [
+                    {
+                        "std": "S (s) + O₂ (g) → SO₂ (g)",
+                        "latex": "S(s) + O_2(g) \\rightarrow SO_2(g)",
+                        "tags": ["氧化 / Oxidation", "酸性气体 / Acid gas"],
+                        "tagsTrad": ["氧化 / Oxidation", "酸性氣體 / Acid gas"],
+                        "explanation": "硫在空气中燃烧发出微弱淡蓝色火焰，产生刺鼻的气味二氧化硫。 (Sulfur burns with a pale blue flame to produce suffocating sulfur dioxide.)",
+                        "explanationTrad": "硫在空氣中燃燒發出微弱淡藍色火焰，產生刺鼻的氣味二氧化硫。 (Sulfur burns with a pale blue flame to produce suffocating sulfur dioxide.)"
+                    },
+                    {
+                        "std": "S (s) + 2H₂SO₄ (conc) → 3SO₂ (g) ↑ + 2H₂O (l)",
+                        "latex": "S(s) + 2H_2SO_4(conc) \\rightarrow 3SO_2(g)\\uparrow + 2H_2O(l)",
+                        "tags": ["归中反应 / Comproportionation", "氧化还原 / Redox"],
+                        "tagsTrad": ["歸中反應 / Comproportionation", "氧化還原 / Redox"],
+                        "explanation": "0价硫与+6价硫共热，归中生成+4价的 SO2 气体。 (Redox comproportionation where 0 and +6 state sulfur merge into +4 oxidation state.)",
+                        "explanationTrad": "0價硫與+6價硫共熱，歸中生成+4價的 SO2 氣體。 (Redox comproportionation where 0 and +6 state sulfur merge into +4 oxidation state.)"
+                    }
+                ],
+                "practice": {
+                    "question": "叙述检验二氧化硫气体的经典酸性高锰酸钾测试。 / Describe the acidified KMnO₄ test for SO₂ gas.",
+                    "questionTrad": "敘述檢驗二氧化硫氣體的經典酸性高錳酸鉀測試。 / Describe the acidified KMnO₄ test for SO₂ gas.",
+                    "points": [
+                        "二氧化硫通入酸化的稀高锰酸钾溶液。 / Bubble SO₂ gas through acidified potassium manganate(VII) solution.",
+                        "紫色的高锰酸钾会被迅速褪色为无色。 / The purple solution rapidly decolourises to colourless (forms Mn²⁺)."
+                    ],
+                    "pointsTrad": [
+                        "二氧化硫通入酸化的稀高錳酸鉀溶液。 / Bubble SO₂ gas through acidified potassium manganate(VII) solution.",
+                        "紫色的高錳酸鉀會被迅速褪色為無色。 / The purple solution rapidly decolourises to colourless (forms Mn²⁺)."
+                    ]
+                },
+                "warning": "刺鼻：SO₂ 对气管极具刺激性。 (Sulfur dioxide is extremely irritating to the respiratory tract.)",
+                "warningTrad": "刺鼻：SO₂ 對氣管極具刺激性。 (Sulfur dioxide is extremely irritating to the respiratory tract.)"
+            },
+            "Cl": {
+                "symbol": "Cl",
+                "nameZhSim": "氯",
+                "nameZhTrad": "氯",
+                "nameEn": "Chlorine",
+                "atomicNumber": 17,
+                "atomicMass": "35.45",
+                "category": "nonmetal",
+                "stateAtRT": "气体 / 氣體 / Gas",
+                "appearance": "黄绿色刺激性有毒气体 / 黃綠色刺激性有毒氣體 / Pale green pungent gas",
+                "meltingPoint": "-101.5 ℃",
+                "boilingPoint": "-34.0 ℃",
+                "oxidationStates": "+7, +5, +3, +1, 0, -1",
+                "chemSummary": "强氧化剂。易发生自身歧化反应（漂白平衡、碱歧化）。 (Strong oxidising halogen. Undergoes disproportionation in alkaline environments.)",
+                "chemSummaryTrad": "強氧化劑。易發生自身歧化反應（漂白平衡、鹼歧化）。 (Strong oxidising halogen. Undergoes disproportionation in alkaline environments.)",
+                "equations": [
+                    {
+                        "std": "Cl₂ (g) + H₂O (l) ⇌ HCl (aq) + HClO (aq)",
+                        "latex": "Cl_2(g) + H_2O(l) \\rightleftharpoons HCl(aq) + HClO(aq)",
+                        "tags": ["歧化 / Disproportionation", "漂白 / Bleach"],
+                        "tagsTrad": ["歧化 / Disproportionation", "漂白 / Bleach"],
+                        "explanation": "氯溶于水歧化。产生的 HClO 具有漂白性。 (Chlorine disproportionates in water, yielding bleaching HClO.)",
+                        "explanationTrad": "氯溶於水歧化。產生的 HClO 具有漂白性。 (Chlorine disproportionates in water, yielding bleaching HClO.)"
+                    },
+                    {
+                        "std": "Cl₂ (g) + 2NaOH (aq) → NaCl (aq) + NaClO (aq) + H₂O (l)",
+                        "latex": "Cl_2(g) + 2NaOH(aq) \\rightarrow NaCl(aq) + NaClO(aq) + H_2O(l)",
+                        "tags": ["工业歧化 / Bleach Prep", "冷稀碱 / Cold Dilute NaOH"],
+                        "tagsTrad": ["工業歧化 / Bleach Prep", "冷稀鹼 / Cold Dilute NaOH"],
+                        "explanation": "常温下与稀碱反应生成次氯酸钠（漂白水成分）。 (Chlorine reacts with cold dilute NaOH to form domestic bleach (NaClO).)",
+                        "explanationTrad": "常溫下與稀鹼反應生成次氯酸鈉（漂白水成分）。 (Chlorine reacts with cold dilute NaOH to form domestic bleach (NaClO).)"
+                    }
+                ],
+                "practice": {
+                    "question": "如何利用石蕊试纸确认氯气的存在？ / Describe the wet blue litmus paper test for Chlorine.",
+                    "questionTrad": "如何利用石蕊試紙確認氯氣的存在？ / Describe the wet blue litmus paper test for Chlorine.",
+                    "points": [
+                        "使用湿润的蓝色石蕊试纸。 / Expose damp blue litmus paper to the gas.",
+                        "试纸先变红（因为水反应生成 HCl，呈酸性）。 / It turns red first due to the acidic nature of HCl/HClO.",
+                        "随后迅速彻底褪色变白（HClO 具有漂白性）。 / It is then rapidly bleached white due to the strong oxidising action of HClO."
+                    ],
+                    "pointsTrad": [
+                        "使用濕潤的藍色石蕊試紙。 / Expose damp blue litmus paper to the gas.",
+                        "試紙先變紅（因為水反應生成 HCl，呈酸性）。 / It turns red first due to the acidic nature of HCl/HClO.",
+                        "隨後迅速徹底褪色變白（HClO 具有漂白性）。 / It is then rapidly bleached white due to the strong oxidising action of HClO."
+                    ]
+                },
+                "warning": "毒气：密度大于空气，防范吸入。 (Toxic: heavier than air, avoid inhalation.)",
+                "warningTrad": "毒氣：密度大於空氣，防範吸入。 (Toxic: heavier than air, avoid inhalation.)"
+            },
+            "Ar": {
+                "symbol": "Ar",
+                "nameZhSim": "氩",
+                "nameZhTrad": "氬",
+                "nameEn": "Argon",
+                "atomicNumber": 18,
+                "atomicMass": "39.95",
+                "category": "noble",
+                "stateAtRT": "气体 / 氣體 / Gas",
+                "appearance": "无色无味气体 / 無色無味氣體 / Colorless gas",
+                "meltingPoint": "-189.3 ℃",
+                "boilingPoint": "-185.8 ℃",
+                "oxidationStates": "0",
+                "chemSummary": "第三周期惰性气体。不参与任何常规反应。 (Inert noble gas. Extremely stable octet outer shell.)",
+                "chemSummaryTrad": "第三週期惰性氣體。不參與任何常規反應。 (Inert noble gas. Extremely stable octet outer shell.)",
+                "equations": [],
+                "practice": {
+                    "question": "解释为什么氩气常用于白炽灯的填充物。 / Why is Argon used to fill incandescent light bulbs?",
+                    "questionTrad": "解釋為什麼氬氣常用於白熾燈的填充物。 / Why is Argon used to fill incandescent light bulbs?",
+                    "points": [
+                        "氩气极其不活泼，能阻止灯丝被氧化。 / Argon's complete inertness prevents the hot tungsten filament from oxidising."
+                    ],
+                    "pointsTrad": [
+                        "氬氣極其不活潑，能阻止燈絲被氧化。 / Argon's complete inertness prevents the hot tungsten filament from oxidising."
+                    ]
+                },
+                "warning": "无明显化学危害。 (Inert; no toxic chemical hazard.)",
+                "warningTrad": "無明顯化學危害。 (Inert; no toxic chemical hazard.)"
+            },
+            "K": {
+                "symbol": "K",
+                "nameZhSim": "钾",
+                "nameZhTrad": "鉀",
+                "nameEn": "Potassium",
+                "atomicNumber": 19,
+                "atomicMass": "39.10",
+                "category": "metal",
+                "stateAtRT": "固体 / 固體 / Solid",
+                "appearance": "银白色极软金属 / 銀白色極軟金屬 / Silvery white extremely soft metal",
+                "meltingPoint": "63.5 ℃",
+                "boilingPoint": "759.0 ℃",
+                "oxidationStates": "+1, 0",
+                "chemSummary": "DSE 活性最强金属。投入冷水会自燃爆鸣，发出紫色火焰。 (Most reactive alkaline metal in syllabus. Explodes on contact with water.)",
+                "chemSummaryTrad": "DSE 活性最強金屬。投入冷水會自燃爆鳴，發出紫色火焰。 (Most reactive alkaline metal in syllabus. Explodes on contact with water.)",
+                "equations": [
+                    {
+                        "std": "2K (s) + 2H₂O (l) → 2KOH (aq) + H₂ (g) ↑",
+                        "latex": "2K(s) + 2H_2O(l) \\rightarrow 2KOH(aq) + H_2(g)\\uparrow",
+                        "tags": ["爆炸置换 / Exploding displacement", "氧化还原 / Redox"],
+                        "tagsTrad": ["爆炸置換 / Exploding displacement", "氧化還原 / Redox"],
+                        "explanation": "反应释放的热量瞬间引燃氢气，发出典型的淡紫色火焰 (Lilac flame)。 (Vigorous reaction; hydrogen is instantly ignited with a lilac flame.)",
+                        "explanationTrad": "反應釋放的熱量瞬間引燃氫氣，發出典型的淡紫色火焰 (Lilac flame)。 (Vigorous reaction; hydrogen is instantly ignited with a lilac flame.)"
+                    }
+                ],
+                "practice": {
+                    "question": "叙述钾盐在焰色反应（Flame Test）中的焰色及测试时的防杂质方法。 / State the flame color of Potassium and how to filter impurity interference.",
+                    "questionTrad": "敘述鉀鹽在焰色反應（Flame Test）中的焰色及測試時的防雜質方法。 / State the flame color of Potassium and how to filter impurity interference.",
+                    "points": [
+                        "淡紫色。 / Lilac color.",
+                        "需要透过蓝色钴玻璃去观察，以过滤微量钠杂质的明黄光。 / Must be viewed through a blue cobalt glass to filter the bright yellow light of Na⁺ contamination."
+                    ],
+                    "pointsTrad": [
+                        "淡紫色。 / Lilac color.",
+                        "需要透過藍色鈷玻璃去觀察，以過濾微量鈉雜質的明黃光。 / Must be viewed through a blue cobalt glass to filter the bright yellow light of Na⁺ contamination."
+                    ]
+                },
+                "warning": "极危：反应极其暴烈。严格防潮防水！ (Extremely dangerous. Explodes readily.)",
+                "warningTrad": "極危：反應極其暴烈。嚴格防潮防水！ (Extremely dangerous. Explodes readily.)"
+            },
+            "Ca": {
+                "symbol": "Ca",
+                "nameZhSim": "钙",
+                "nameZhTrad": "鈣",
+                "nameEn": "Calcium",
+                "atomicNumber": 20,
+                "atomicMass": "40.08",
+                "category": "metal",
+                "stateAtRT": "固体 / 固體 / Solid",
+                "appearance": "银灰色中等硬度金属 / 銀灰色中等硬度金屬 / Silvery gray medium-hard metal",
+                "meltingPoint": "842.0 ℃",
+                "boilingPoint": "1484 ℃",
+                "oxidationStates": "+2, 0",
+                "chemSummary": "碱土金属。遇水产生微溶的氢氧化钙白乳，产生氢气。 (Alkaline earth metal. Reacts with water moderately to form milky limewater.)",
+                "chemSummaryTrad": "鹼土金屬。遇水產生微溶的氫氧化鈣白乳，產生氫氣。 (Alkaline earth metal. Reacts with water moderately to form milky limewater.)",
+                "equations": [
+                    {
+                        "std": "Ca (s) + 2H₂O (l) → Ca(OH)₂ (s) ↓ + H₂ (g) ↑",
+                        "latex": "Ca(s) + 2H_2O(l) \\rightarrow Ca(OH)_2(s)\\downarrow + H_2(g)\\uparrow",
+                        "tags": ["置换 / Displacement", "悬浊液 / Suspension Prep"],
+                        "tagsTrad": ["置換 / Displacement", "懸濁液 / Suspension Prep"],
+                        "explanation": "钙会下沉并平稳反应。生成的微溶 Ca(OH)2 会令溶液变白浑浊。 (Calcium sinks and reacts; micro-soluble Ca(OH)₂ turns solution cloudy.)",
+                        "explanationTrad": "鈣會下沉並平穩反應。生成的微溶 Ca(OH)2 會令溶液變白渾濁。 (Calcium sinks and reacts; micro-soluble Ca(OH)₂ turns solution cloudy.)"
+                    },
+                    {
+                        "std": "CaCO₃ (s) → CaO (s) + CO₂ (g) ↑",
+                        "latex": "CaCO_3(s) \\rightarrow CaO(s) + CO_2(g)\\uparrow",
+                        "tags": ["热分解 / Thermal decomposition", "石灰窑 / Lime kiln"],
+                        "tagsTrad": ["熱分解 / Thermal decomposition", "石灰窯 / Lime kiln"],
+                        "explanation": "碳酸钙强热分解（约900℃），工业上用以炼制生石灰。 (Calcium carbonate thermally decomposes into calcium oxide and CO₂ gas under high heat.)",
+                        "explanationTrad": "碳酸鈣強熱分解（約900℃），工業上用以煉製生石灰。 (Calcium carbonate thermally decomposes into calcium oxide and CO₂ gas under high heat.)"
+                    }
+                ],
+                "practice": {
+                    "question": "为何将过量 CO₂ 通入澄清石灰水先混浊后澄清？ / Why does limewater turn cloudy then clear again upon excess CO₂?",
+                    "questionTrad": "為何將過量 CO₂ 通入澄清石灰水先混濁後澄清？ / Why does limewater turn cloudy then clear again upon excess CO₂?",
+                    "points": [
+                        "第一阶段：产生白色 CaCO₃ 沉淀导致白色浑浊。 / Phase 1: White CaCO₃ precipitate forms, causing cloudiness.",
+                        "第二阶段：过量 CO₂ 与之反应，转化成高可溶性的 Ca(HCO₃)₂。 / Phase 2: Excess CO₂ reacts to form highly soluble Calcium Bicarbonate."
+                    ],
+                    "pointsTrad": [
+                        "第一階段：產生白色 CaCO₃ 沉澱導致白色渾濁。 / Phase 1: White CaCO₃ precipitate forms, causing cloudiness.",
+                        "第二階段：過量 CO₂ 與之反應，轉化成高可溶性的 Ca(HCO₃)₂。 / Phase 2: Excess CO₂ reacts to form highly soluble Calcium Bicarbonate."
+                    ]
+                },
+                "warning": "焰色反应：焰色呈砖红色 (Brick-red flame)。 (Emits brick-red flame color.)",
+                "warningTrad": "焰色反應：焰色呈磚紅色 (Brick-red flame)。 (Emits brick-red flame color.)"
+            }
+        };
+
+        const DSE_KNOWLEDGE_CARDS = [
+            {
+                "title": "焰色反應全景彙總 (Flame Tests Summary)",
+                "content": "K (淡紫) | Na (明黃) | Ca (磚紅) | Li (紅)。焰色試驗屬於物理性質變化，須使用濃鹽酸清洗鎳鉻絲至完全無雜色。",
+                "contentTrad": "K (淡紫) | Na (明黃) | Ca (磚紅) | Li (紅)。焰色試驗屬於物理性質變化，須使用濃鹽酸清洗鎳鉻絲至完全無雜色。\n\nK (Lilac) | Na (Yellow) | Ca (Brick-red) | Li (Red). Flame test is a physical change."
+            },
+            {
+                "title": "鹼金屬與冷水反應活性 (Group 1 Water Reactivity)",
+                "content": "從 Li → Na → K 活性劇烈上升。原子半徑變大，最外層價電子更容易失去。Li 冒氣泡、Na 熔化游動、K 發生淡紫爆燃。",
+                "contentTrad": "從 Li → Na → K 活性劇烈上升。原子半徑變大，最外層價電子更容易失去。Li 冒氣泡、Na 熔化游動、K 發生淡紫爆燃。\n\nReactivity rises down the group (Li < Na < K) as outer electron is lost more easily."
+            }
+        ];
+
+        // State Management
+        let currentLanguage = 'zhTrad'; // Default: Traditional Chinese for HKDSE
+        let selectedElement = null;
+        let searchQuery = "";
+        let selectedCategory = "all";
+        let favoritesList = JSON.parse(localStorage.getItem('chem_favs') || '[]');
+        let onlyFavorites = false;
+        let activeTab = "props";
+        let activeEqFormat = "std"; // std or latex
+
+        // Localization Utilities
+        const UI_TEXT = {
+            zhSim: {
+                "langLabel": "简体中文 / EN",
+                "allLabel": "全部类别",
+                "metal": "活性金属",
+                "metalloid": "准金属 / 两性",
+                "nonmetal": "非金属",
+                "noble": "惰性气体",
+                "favoritesOnly": "仅看收藏",
+                "searchPlaceholder": "搜索元素、方程式、考点 / Search...",
+                "noFavs": "暂无收藏的元素",
+                "practiceTab": "DSE 模考演练",
+                "eqTab": "必考方程式",
+                "propsTab": "性质大纲",
+                "revealAns": "显示答案与解题关键 / Reveal Answer",
+                "hideAns": "隐藏答案 / Hide Answer"
+            },
+            zhTrad: {
+                "langLabel": "繁體中文 / EN",
+                "allLabel": "全部類別",
+                "metal": "活性金屬",
+                "metalloid": "准金屬 / 兩性",
+                "nonmetal": "非金屬",
+                "noble": "惰性氣體",
+                "favoritesOnly": "僅看收藏",
+                "searchPlaceholder": "搜尋元素、方程式、考點 / Search...",
+                "noFavs": "暫無收藏的元素",
+                "practiceTab": "DSE 模考演練 / Mock Test",
+                "eqTab": "必考方程式 / Equations",
+                "propsTab": "性質大綱 / Props",
+                "revealAns": "顯示答案與解題關鍵 / Reveal Answer",
+                "hideAns": "隱藏答案 / Hide Answer"
+            }
+        };
+
+        // Initialize App on DOM Loaded
+        window.addEventListener('DOMContentLoaded', () => {
+            initFilters();
+            renderElementsGrid();
+            renderDseTips();
+            lucide.createIcons();
+        });
+
+        // Initialize concept filter buttons
+        function initFilters() {
+            const container = document.getElementById('category-filters');
+            if (!container) return;
+            const categories = [
+                { id: 'all', nameZhSim: '全部 / All', nameZhTrad: '全部 / All' },
+                { id: 'metal', nameZhSim: '活性金属 / Metals', nameZhTrad: '活性金屬 / Metals' },
+                { id: 'metalloid', nameZhSim: '准金属 / Metalloids', nameZhTrad: '准金屬 / Metalloids' },
+                { id: 'nonmetal', nameZhSim: '非金属 / Nonmetals', nameZhTrad: '非金屬 / Nonmetals' },
+                { id: 'noble', nameZhSim: '惰性气体 / Noble Gases', nameZhTrad: '惰性氣體 / Noble Gases' }
+            ];
+
+            container.innerHTML = categories.map(cat => {
+                const name = currentLanguage === 'zhSim' ? cat.nameZhSim : cat.nameZhTrad;
+                return `
+                    <button onclick="setCategoryFilter('${cat.id}')" id="cat-btn-${cat.id}" class="px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${cat.id === 'all' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-white/5 border-white/5 hover:border-white/10 text-gray-400'}">
+                        ${name}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        // Toggle App Language
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'zhTrad' ? 'zhSim' : 'zhTrad';
+            document.getElementById('lang-label').innerText = UI_TEXT[currentLanguage].langLabel;
+            document.getElementById('global-search').placeholder = UI_TEXT[currentLanguage].searchPlaceholder;
+            
+            // Re-render
+            initFilters();
+            renderElementsGrid();
+            renderDseTips();
+            if (selectedElement) {
+                updateDetailsPane(selectedElement);
+            }
+        }
+
+        // Render Periodic Grid with dynamic styles
+        function renderElementsGrid() {
+            const gridContainer = document.getElementById('periodic-grid');
+            if (!gridContainer) return;
+            gridContainer.innerHTML = '';
+
+            const elementKeys = Object.keys(DB_ELEMENTS);
+            
+            elementKeys.forEach(key => {
+                const item = DB_ELEMENTS[key];
+                const isFavorite = favoritesList.includes(key);
+                
+                // Filtering Logic
+                const name = currentLanguage === 'zhSim' ? item.nameZhSim : item.nameZhTrad;
+                const searchLower = searchQuery.toLowerCase();
+                const matchesSearch = 
+                    item.symbol.toLowerCase().includes(searchLower) ||
+                    name.includes(searchLower) ||
+                    item.nameEn.toLowerCase().includes(searchLower) ||
+                    (item.chemSummary && item.chemSummary.toLowerCase().includes(searchLower)) ||
+                    (item.chemSummaryTrad && item.chemSummaryTrad.toLowerCase().includes(searchLower));
+
+                const matchesCat = selectedCategory === 'all' || item.category === selectedCategory;
+                const matchesFav = !onlyFavorites || isFavorite;
+
+                if (!matchesSearch || !matchesCat || !matchesFav) {
+                    return; // Skip rendering
+                }
+
+                // Category styling
+                let colorClass = "bg-blue-500/10 border-blue-500/20 text-blue-400";
+                if (item.category === 'metalloid') colorClass = "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
+                if (item.category === 'nonmetal') colorClass = "bg-amber-500/10 border-amber-500/20 text-amber-400";
+                if (item.category === 'noble') colorClass = "bg-purple-500/10 border-purple-500/20 text-purple-400";
+
+                const activeClass = selectedElement === key ? "active-card" : "";
+
+                const elementHTML = `
+                    <div onclick="selectElement('${key}')" class="element-card ${colorClass} ${activeClass} glass-panel border cursor-pointer rounded-xl p-3 flex flex-col justify-between aspect-square relative select-none">
+                        <div class="flex justify-between items-start">
+                            <span class="text-[9px] font-mono opacity-80">${item.atomicNumber}</span>
+                            ${isFavorite ? '<svg class="w-2.5 h-2.5 text-amber-400 fill-amber-400 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>' : ''}
+                        </div>
+                        <div class="text-center">
+                            <span class="text-xl font-black block tracking-wider">${item.symbol}</span>
+                            <span class="text-[10px] block opacity-90">${name}</span>
+                        </div>
+                        <span class="text-[8px] font-mono opacity-60 text-right">${item.atomicMass}</span>
+                    </div>
+                `;
+                gridContainer.insertAdjacentHTML('beforeend', elementHTML);
+            });
+
+            lucide.createIcons();
+        }
+
+        // Render DSE high frequency tips
+        function renderDseTips() {
+            const container = document.getElementById('quick-dse-tips');
+            if (!container) return;
+            container.innerHTML = DSE_KNOWLEDGE_CARDS.map(tip => {
+                const title = tip.title;
+                const content = currentLanguage === 'zhSim' ? tip.content : tip.contentTrad;
+                return `
+                    <div class="bg-white/[0.02] border border-white/5 rounded-xl p-3.5 hover:border-white/10 transition-all flex flex-col gap-1.5">
+                        <h4 class="text-xs font-semibold text-white flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> ${title}
+                        </h4>
+                        <p class="text-[11px] text-gray-400 leading-relaxed whitespace-pre-line">${content}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Select an element from grid
+        function selectElement(symbol) {
+            selectedElement = symbol;
+            
+            // Re-render grid to update active highlight
+            renderElementsGrid();
+            
+            // Show details panel content and load data
+            const placeholder = document.getElementById('details-placeholder');
+            const content = document.getElementById('details-content');
+            if (placeholder) placeholder.classList.add('hidden');
+            if (content) content.classList.remove('hidden');
+            
+            updateDetailsPane(symbol);
+        }
+
+        // Update the Right Details Sidebar View
+        function updateDetailsPane(symbol) {
+            const item = DB_ELEMENTS[symbol];
+            if (!item) return;
+
+            // Load texts based on language selection
+            const nameZh = currentLanguage === 'zhSim' ? item.nameZhSim : item.nameZhTrad;
+            const chemSum = currentLanguage === 'zhSim' ? item.chemSummary : item.chemSummaryTrad;
+
+            const elSymbol = document.getElementById('detail-symbol');
+            const elNumber = document.getElementById('detail-number');
+            const elNameZh = document.getElementById('detail-name-zh');
+            const elNameEn = document.getElementById('detail-name-en');
+            const elMass = document.getElementById('detail-mass');
+
+            if (elSymbol) elSymbol.innerText = item.symbol;
+            if (elNumber) elNumber.innerText = item.atomicNumber;
+            if (elNameZh) elNameZh.innerText = nameZh;
+            if (elNameEn) elNameEn.innerText = item.nameEn;
+            if (elMass) elMass.innerText = item.atomicMass;
+
+            // Category thematic box styling
+            const box = document.getElementById('detail-symbol-box');
+            if (box) {
+                box.className = "w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-black text-white relative ";
+                if (item.category === 'metal') box.classList.add('bg-blue-600/30', 'border', 'border-blue-500/40', 'text-blue-300');
+                if (item.category === 'metalloid') box.classList.add('bg-emerald-600/30', 'border', 'border-emerald-500/40', 'text-emerald-300');
+                if (item.category === 'nonmetal') box.classList.add('bg-amber-600/30', 'border', 'border-amber-500/40', 'text-amber-300');
+                if (item.category === 'noble') box.classList.add('bg-purple-600/30', 'border', 'border-purple-500/40', 'text-purple-300');
+            }
+
+            // Save Favorite Icon state - Robust update on path
+            const isFav = favoritesList.includes(symbol);
+            const favStar = document.getElementById('detail-fav-star');
+            if (favStar) {
+                if (isFav) {
+                    favStar.classList.remove('text-gray-400');
+                    favStar.classList.add('text-amber-400', 'fill-amber-400');
+                } else {
+                    favStar.classList.add('text-gray-400');
+                    favStar.classList.remove('text-amber-400', 'fill-amber-400');
+                }
+            }
+
+            // Fill Properties Tab (With clean bilingual formatting)
+            const stateField = document.getElementById('prop-state');
+            const appField = document.getElementById('prop-appearance');
+            const mpField = document.getElementById('prop-mp');
+            const bpField = document.getElementById('prop-bp');
+            const stateChem = document.getElementById('chem-states');
+            const sumField = document.getElementById('chem-summary');
+
+            if (stateField) {
+                const parts = item.stateAtRT.split('/');
+                const stateDisplay = parts[currentLanguage === 'zhSim' ? 0 : 1].trim();
+                const stateEnglish = parts[2] ? parts[2].trim() : "Solid";
+                stateField.innerHTML = `<div>${stateDisplay}</div><div class="text-[10px] text-gray-400 font-mono">${stateEnglish}</div>`;
+            }
+            if (appField) {
+                const parts = item.appearance.split('/');
+                const appDisplay = parts[currentLanguage === 'zhSim' ? 0 : 1].trim();
+                const appEnglish = parts[2] ? parts[2].trim() : "Silvery Metal";
+                appField.innerHTML = `<div>${appDisplay}</div><div class="text-[10px] text-gray-400 font-mono">${appEnglish}</div>`;
+            }
+            if (mpField) mpField.innerText = item.meltingPoint;
+            if (bpField) bpField.innerText = item.boilingPoint;
+            if (stateChem) stateChem.innerText = item.oxidationStates;
+            if (sumField) sumField.innerText = chemSum;
+
+            // Equations Tab rendering
+            renderEquationsList(item.equations);
+
+            // Practice Tab rendering
+            const practiceQ = currentLanguage === 'zhSim' ? item.practice.question : item.practice.questionTrad;
+            const practiceAns = currentLanguage === 'zhSim' ? item.practice.points : item.practice.pointsTrad;
+            const warningText = currentLanguage === 'zhSim' ? item.warning : item.warningTrad;
+
+            const prQField = document.getElementById('practice-question');
+            const prPoints = document.getElementById('practice-points');
+            const prWarning = document.getElementById('practice-warning');
+
+            if (prQField) prQField.innerText = practiceQ;
+            if (prPoints) prPoints.innerHTML = practiceAns.map(point => `<li class="leading-relaxed">${point}</li>`).join('');
+            if (prWarning) prWarning.innerText = warningText || "";
+
+            // Quick Copy box update
+            const defaultEq = item.equations[0] ? item.equations[0].std : `${symbol} is inert noble gas.`;
+            const cpText = document.getElementById('quick-copy-text');
+            if (cpText) cpText.innerText = defaultEq;
+
+            // Reset tab and answer reveals safely
+            switchTab(activeTab);
+            hideAnswerDirectly();
+        }
+
+        // Render Chemical Equations under Eq Tab
+        function renderEquationsList(eqs) {
+            const container = document.getElementById('equations-list');
+            if (!container) return;
+            if (!eqs || eqs.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-xs text-gray-500">
+                        該元素無常考反應方程式 / No reactions under standard DSE scope.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = eqs.map((eq, idx) => {
+                const textToDisplay = activeEqFormat === 'std' ? eq.std : `$$${eq.latex}$$`;
+                const explanation = currentLanguage === 'zhSim' ? eq.explanation : eq.explanationTrad;
+                const tags = currentLanguage === 'zhSim' ? eq.tags : eq.tagsTrad;
+
+                const tagsHTML = tags.map(t => `<span class="px-1.5 py-0.5 bg-blue-500/10 text-blue-400 rounded text-[9px] border border-blue-500/10">${t}</span>`).join('');
+
+                return `
+                    <div class="bg-black/30 border border-white/5 rounded-lg p-3 flex flex-col gap-2">
+                        <div class="flex justify-between items-start gap-2">
+                            <span class="text-xs font-mono font-bold text-white tracking-wide break-all">${textToDisplay}</span>
+                            <button onclick="copyToClipboard('${eq.std}', this)" class="text-gray-500 hover:text-blue-400 p-1 rounded hover:bg-white/5 transition-all" title="複製方程式">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                        <div class="flex flex-wrap gap-1">${tagsHTML}</div>
+                        <p class="text-[10px] text-gray-400 leading-relaxed">${explanation}</p>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        // Navigation Sidebar Tabs
+        function switchTab(tabId) {
+            activeTab = tabId;
+            const tabs = ['props', 'eqs', 'practice'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const content = document.getElementById(`content-${t}`);
+                if (!btn || !content) return;
+                if (t === tabId) {
+                    btn.classList.add('border-blue-500', 'text-blue-400');
+                    btn.classList.remove('border-transparent', 'text-gray-400');
+                    content.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('border-blue-500', 'text-blue-400');
+                    btn.classList.add('border-transparent', 'text-gray-400');
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
+        // Toggle Format display: Normal vs LaTeX
+        function setEqFormat(fmt) {
+            activeEqFormat = fmt;
+            const fmtStd = document.getElementById('fmt-std');
+            const fmtLatex = document.getElementById('fmt-latex');
+            if (fmtStd && fmtLatex) {
+                fmtStd.className = fmt === 'std' ? 'px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'px-1.5 py-0.5 rounded hover:bg-white/5';
+                fmtLatex.className = fmt === 'latex' ? 'px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'px-1.5 py-0.5 rounded hover:bg-white/5';
+            }
+            
+            if (selectedElement) {
+                const item = DB_ELEMENTS[selectedElement];
+                renderEquationsList(item.equations);
+            }
+        }
+
+        // Copy Clipboard Helper
+        function copyToClipboard(text, btnElement) {
+            const tempInput = document.createElement("input");
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+
+            // Toast effect inside button
+            if (btnElement) {
+                const origIconHTML = btnElement.innerHTML;
+                btnElement.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>`;
+                lucide.createIcons();
+                setTimeout(() => {
+                    btnElement.innerHTML = origIconHTML;
+                    lucide.createIcons();
+                }, 1500);
+            }
+        }
+
+        // Copy current primary card study text
+        function copyStudyCardText() {
+            const cpText = document.getElementById('quick-copy-text');
+            if (cpText) {
+                copyToClipboard(cpText.innerText);
+                showToast("方程式已成功複製至剪貼板！ / Formula copied!");
+            }
+        }
+
+        // Toggle Favorites for Current Active Element
+        function toggleFavoriteCurrent() {
+            if (!selectedElement) return;
+            const idx = favoritesList.indexOf(selectedElement);
+            if (idx > -1) {
+                favoritesList.splice(idx, 1);
+                showToast(`已從收藏夾移除 ${selectedElement} / Removed ${selectedElement}`);
+            } else {
+                favoritesList.push(selectedElement);
+                showToast(`已成功收藏 ${selectedElement} 核心原理卡 / Favorited ${selectedElement}`);
+            }
+            localStorage.setItem('chem_favs', JSON.stringify(favoritesList));
+            
+            // Re-render to update UI stars
+            renderElementsGrid();
+            updateDetailsPane(selectedElement);
+        }
+
+        // Filter Grid by category clicking
+        function setCategoryFilter(catId) {
+            selectedCategory = catId;
+            const btns = document.querySelectorAll('[id^="cat-btn-"]');
+            btns.forEach(btn => {
+                if (btn.id === `cat-btn-${catId}`) {
+                    btn.className = "px-3 py-1.5 rounded-lg border text-xs font-medium transition-all bg-blue-600 border-blue-500 text-white";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg border text-xs font-medium transition-all bg-white/5 border-white/5 hover:border-white/10 text-gray-400";
+                }
+            });
+            renderElementsGrid();
+        }
+
+        // Filter Grid only showing favorites toggle
+        function toggleFilterFavorites() {
+            onlyFavorites = !onlyFavorites;
+            const btn = document.getElementById('fav-filter-btn');
+            const star = document.getElementById('fav-filter-star');
+            if (btn && star) {
+                if (onlyFavorites) {
+                    btn.classList.add('bg-amber-500/10', 'border-amber-500/30', 'text-amber-400');
+                    star.classList.add('fill-amber-400');
+                } else {
+                    btn.classList.remove('bg-amber-500/10', 'border-amber-500/30', 'text-amber-400');
+                    star.classList.remove('fill-amber-400');
+                }
+            }
+            renderElementsGrid();
+        }
+
+        // Handle Live Search Filtering
+        function handleSearch() {
+            const searchField = document.getElementById('global-search');
+            if (searchField) {
+                searchQuery = searchField.value;
+                renderElementsGrid();
+            }
+        }
+
+        // Show/Hide Practice Answers using robust SVG manipulation
+        function toggleAnswer() {
+            const box = document.getElementById('practice-answer-box');
+            const txt = document.getElementById('toggle-answer-text');
+            const icon = document.getElementById('answer-eye-icon');
+            if (!box || !txt) return;
+
+            if (box.classList.contains('hidden')) {
+                box.classList.remove('hidden');
+                txt.innerText = UI_TEXT[currentLanguage].hideAns;
+                if (icon) {
+                    icon.innerHTML = `
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    `;
+                }
+            } else {
+                box.classList.add('hidden');
+                txt.innerText = UI_TEXT[currentLanguage].revealAns;
+                if (icon) {
+                    icon.innerHTML = `
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    `;
+                }
+            }
+        }
+
+        function hideAnswerDirectly() {
+            const box = document.getElementById('practice-answer-box');
+            const txt = document.getElementById('toggle-answer-text');
+            const icon = document.getElementById('answer-eye-icon');
+            if (box) box.classList.add('hidden');
+            if (txt) txt.innerText = UI_TEXT[currentLanguage].revealAns;
+            if (icon) {
+                icon.innerHTML = `
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                `;
+            }
+        }
+
+        // Modals Toggle
+        function openConceptGuide() {
+            const modal = document.getElementById('concept-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeConceptGuide() {
+            const modal = document.getElementById('concept-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        // Download/Export study card as Markdown file
+        function downloadStudyCard() {
+            if (!selectedElement) return;
+            const item = DB_ELEMENTS[selectedElement];
+            const nameZh = currentLanguage === 'zhSim' ? item.nameZhSim : item.nameZhTrad;
+            const summary = currentLanguage === 'zhSim' ? item.chemSummary : item.chemSummaryTrad;
+
+            let fileContent = `# HKDSE Chemistry Study Card: ${item.symbol} (${nameZh} / ${item.nameEn})\n\n`;
+            fileContent += `## 1. 物理性质 / Physical Properties\n`;
+            fileContent += `- 相对原子质量: ${item.atomicMass}\n`;
+            fileContent += `- 常温状态: ${item.stateAtRT}\n`;
+            fileContent += `- 熔点: ${item.meltingPoint}\n`;
+            fileContent += `- 沸点: ${item.boilingPoint}\n\n`;
+            fileContent += `## 2. 化学性质概要 / Chemical Summary\n`;
+            fileContent += `${summary}\n\n`;
+            fileContent += `## 3. DSE 必考方程式与解析 / Key Equations & Explanations\n`;
+            
+            if (item.equations && item.equations.length > 0) {
+                item.equations.forEach((eq, index) => {
+                    const exp = currentLanguage === 'zhSim' ? eq.explanation : eq.explanationTrad;
+                    fileContent += `${index + 1}. **${eq.std}**\n`;
+                    fileContent += `   - 解析: ${exp}\n\n`;
+                });
+            } else {
+                fileContent += `*(此元素为惰性气体，一般不涉及考题反应方程式)*\n\n`;
+            }
+
+            fileContent += `## 4. DSE 模拟问答演练 / Mock Practice\n`;
+            fileContent += `**问**: ${currentLanguage === 'zhSim' ? item.practice.question : item.practice.questionTrad}\n\n`;
+            fileContent += `**参考得分点 (Marking Scheme)**:\n`;
+            const points = currentLanguage === 'zhSim' ? item.practice.points : item.practice.pointsTrad;
+            points.forEach(pt => {
+                fileContent += `- ${pt}\n`;
+            });
+
+            // Trigger actual download of the generated text card
+            const blob = new Blob([fileContent], { type: 'text/markdown;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `DSE_Chem_Card_${item.symbol}.md`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast(`已成功下載 ${item.symbol} 學習卡 Markdown 檔案！`);
+        }
+
+        // Custom clean notification toast
+        function showToast(message) {
+            const toast = document.createElement("div");
+            toast.className = "fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-blue-600/95 text-white text-xs px-4 py-2.5 rounded-full shadow-xl backdrop-blur-md z-50 border border-blue-400/30 transition-opacity duration-300 pointer-events-none";
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
