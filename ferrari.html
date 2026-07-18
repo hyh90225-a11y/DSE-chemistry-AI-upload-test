@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>法拉利力学实验室 - 用超级跑车探索物理极限</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- LaTeX Math Rendering (KaTeX for fast beautiful formulas) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <style>
+    /* 碳纤维纹理背景 */
+    .carbon-bg {
+      background-color: #121212;
+      background-image: 
+        linear-gradient(45deg, #181818 25%, transparent 25%), 
+        linear-gradient(-45deg, #181818 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #181818 75%), 
+        linear-gradient(-45deg, transparent 75%, #181818 75%);
+      background-size: 10px 10px;
+      background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+    }
+
+    /* 玫瑰红渐变与阴影 */
+    .rose-red-glow {
+      box-shadow: 0 0 15px rgba(229, 26, 46, 0.4);
+    }
+    .text-glow {
+      text-shadow: 0 0 8px rgba(229, 26, 46, 0.6);
+    }
+    
+    /* 赛车仪表盘动画 */
+    @keyframes revUp {
+      0% { transform: rotate(-120deg); }
+      50% { transform: rotate(40deg); }
+      70% { transform: rotate(10deg); }
+      100% { transform: rotate(-120deg); }
+    }
+    .revving {
+      animation: revUp 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    /* 极速流线背景动画 */
+    @keyframes stream {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    .streamline {
+      animation: stream 2s linear infinite;
+    }
+
+    /* 滚动条美化 */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #E51A2E;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="carbon-bg text-gray-100 min-h-screen font-sans overflow-x-hidden">
+
+  <!-- ================= 网页入场动画 (Splash Screen) ================= -->
+  <div id="splash-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black transition-all duration-1000">
+    <!-- 流线背景装饰 -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none opacity-10">
+      <div class="w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent absolute top-1/4 streamline" style="animation-delay: 0s;"></div>
+      <div class="w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent absolute top-2/3 streamline" style="animation-delay: 1s;"></div>
+    </div>
+
+    <!-- 法拉利跃马盾徽剪影与主题 -->
+    <div class="text-center px-4 max-w-lg z-10">
+      <div class="inline-block p-4 rounded-full bg-gradient-to-br from-red-600 to-red-800 rose-red-glow mb-6 animate-bounce">
+        <!-- SVG 赛车头盔/速度感图标 -->
+        <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+        </svg>
+      </div>
+      <h1 class="text-4xl md:text-5xl font-black tracking-widest text-red-500 mb-2 font-mono text-glow">FERRARI</h1>
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-300 mb-4">法拉利力学实验室</h2>
+      <p class="text-gray-400 text-sm md:text-base mb-8">用方程式赛车与顶级超跑的硬核设计，解密物理学极限速度的底层法则。</p>
+      
+      <!-- 引擎启动按钮 -->
+      <button id="start-btn" class="px-8 py-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold tracking-wider rounded-full transition-all duration-300 transform hover:scale-105 active:scale-95 rose-red-glow border border-red-500">
+        点火发动 ENGINE START
+      </button>
+
+      <!-- 模拟仪表盘 (点击启动后旋转) -->
+      <div class="mt-8 flex justify-center opacity-40">
+        <div class="relative w-32 h-32 border-4 border-gray-700 rounded-full flex items-center justify-center">
+          <div class="absolute top-0 text-xs font-mono text-red-500">RPM x1000</div>
+          <!-- 指针 -->
+          <div id="gauge-needle" class="w-1 h-14 bg-red-500 origin-bottom rounded-full" style="transform: rotate(-120deg); transform-origin: 50% 100%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 主应用页面 (Main Application) ================= -->
+  <div id="main-app" class="hidden min-h-screen flex flex-col transition-all duration-700 opacity-0">
+    
+    <!-- 导航栏 -->
+    <header class="border-b border-gray-800 bg-black/80 backdrop-blur-md sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl font-black tracking-wider text-red-500 font-mono text-glow">FERRARI MECHANICS</span>
+          <span class="px-2 py-0.5 bg-red-600/20 text-red-500 border border-red-600/30 text-xs font-bold rounded">中学生物理解密版</span>
+        </div>
+        <nav class="flex gap-2">
+          <button onclick="switchTab('sim')" id="tab-sim" class="px-4 py-2 rounded-lg text-sm font-bold transition-all bg-red-600 text-white shadow-lg shadow-red-600/20">
+            <span class="flex items-center gap-2"><i data-lucide="gauge"></i> 弯道极限模拟器</span>
+          </button>
+          <button onclick="switchTab('theory')" id="tab-theory" class="px-4 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white hover:bg-gray-800 transition-all">
+            <span class="flex items-center gap-2"><i data-lucide="book-open"></i> 核心力学对照</span>
+          </button>
+          <button onclick="switchTab('quiz')" id="tab-quiz" class="px-4 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white hover:bg-gray-800 transition-all">
+            <span class="flex items-center gap-2"><i data-lucide="award"></i> 赛车工程师应战</span>
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- 主体内容 -->
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-6">
+
+      <!-- ================= 模块一：弯道极限模拟器 ================= -->
+      <section id="sec-sim" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- 控制面板 (左侧 5 列) -->
+        <div class="lg:col-span-5 bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 flex flex-col gap-6 relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-24 h-24 bg-red-600/5 rounded-bl-full pointer-events-none"></div>
+          
+          <div>
+            <h3 class="text-xl font-extrabold text-red-500 flex items-center gap-2">
+              <i data-lucide="sliders" class="text-red-500"></i> 控制参数配置 (Telemetry)
+            </h3>
+            <p class="text-xs text-gray-400 mt-1">改变方程式赛车的状态，观察其如何影响极限过弯平衡</p>
+          </div>
+
+          <!-- 滑块 1：赛车速度 -->
+          <div class="bg-zinc-950/60 p-4 rounded-xl border border-zinc-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-sm font-semibold flex items-center gap-1.5 text-gray-300">
+                <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i> 赛车速度 (v)
+              </label>
+              <span id="val-speed" class="text-red-500 font-bold font-mono text-base">150 km/h</span>
+            </div>
+            <input type="range" id="slide-speed" min="30" max="320" value="150" step="5" class="w-full accent-red-600 bg-zinc-800 h-2 rounded-lg appearance-none cursor-pointer">
+            <div class="flex justify-between text-[10px] text-gray-500 mt-1">
+              <span>30 km/h (市区限速)</span>
+              <span>180 (大弯限速)</span>
+              <span>320 km/h (直道末端)</span>
+            </div>
+          </div>
+
+          <!-- 滑块 2：弯道半径 -->
+          <div class="bg-zinc-950/60 p-4 rounded-xl border border-zinc-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-sm font-semibold flex items-center gap-1.5 text-gray-300">
+                <i data-lucide="git-commit" class="w-4 h-4 text-blue-400"></i> 弯道半径 (r)
+              </label>
+              <span id="val-radius" class="text-blue-400 font-bold font-mono text-base">80 m</span>
+            </div>
+            <input type="range" id="slide-radius" min="20" max="200" value="80" step="5" class="w-full accent-blue-500 bg-zinc-800 h-2 rounded-lg appearance-none cursor-pointer">
+            <div class="flex justify-between text-[10px] text-gray-500 mt-1">
+              <span>20 m (发夹弯)</span>
+              <span>80 m (中速弯)</span>
+              <span>200 m (高速超大弯)</span>
+            </div>
+          </div>
+
+          <!-- 滑块 3：空气下压力倍率 -->
+          <div class="bg-zinc-950/60 p-4 rounded-xl border border-zinc-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-sm font-semibold flex items-center gap-1.5 text-gray-300">
+                <i data-lucide="chevrons-down" class="w-4 h-4 text-emerald-400 animate-bounce"></i> 空气下压力 (DF)
+              </label>
+              <span id="val-downforce" class="text-emerald-400 font-bold font-mono text-base">0.50 G</span>
+            </div>
+            <input type="range" id="slide-downforce" min="0" max="2.0" value="0.5" step="0.05" class="w-full accent-emerald-500 bg-zinc-800 h-2 rounded-lg appearance-none cursor-pointer">
+            <div class="flex justify-between text-[10px] text-gray-500 mt-1">
+              <span>0.0 (普通轿车)</span>
+              <span>0.8 (公路跑车)</span>
+              <span>2.0 G (F1极致下压力)</span>
+            </div>
+            <p class="text-[11px] text-emerald-500/70 mt-1.5">
+              💡 产生等同于 <span id="downforce-kg" class="font-bold">500</span> kg 重力的垂直压力，而不增加车重！
+            </p>
+          </div>
+
+          <!-- 滑块 4：轮胎抓地力系数 -->
+          <div class="bg-zinc-950/60 p-4 rounded-xl border border-zinc-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-sm font-semibold flex items-center gap-1.5 text-gray-300">
+                <i data-lucide="disc" class="w-4 h-4 text-purple-400"></i> 轮胎静摩擦系数 (&mu;)
+              </label>
+              <span id="val-mu" class="text-purple-400 font-bold font-mono text-base">1.20</span>
+            </div>
+            <input type="range" id="slide-mu" min="0.4" max="1.8" value="1.2" step="0.05" class="w-full accent-purple-500 bg-zinc-800 h-2 rounded-lg appearance-none cursor-pointer">
+            <div class="flex justify-between text-[10px] text-gray-500 mt-1">
+              <span>0.4 (雨天湿滑)</span>
+              <span>1.0 (普通干地)</span>
+              <span>1.8 (热熔光头胎)</span>
+            </div>
+          </div>
+
+          <!-- 赛车总质量 (固定/参考) -->
+          <div class="flex items-center justify-between text-xs text-gray-400 bg-zinc-950/40 p-3 rounded-lg border border-zinc-800/50">
+            <span>赛车整备质量 (m): <strong class="text-gray-200">1000 kg</strong></span>
+            <span>重力加速度 (g): <strong class="text-gray-200">9.8 m/s²</strong></span>
+          </div>
+        </div>
+
+        <!-- 实时分析与可视化 (右侧 7 列) -->
+        <div class="lg:col-span-7 flex flex-col gap-6">
+          <!-- 核心仪表 telemetry 结果看板 -->
+          <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6">
+            <h3 class="text-lg font-bold text-gray-200 mb-4 flex items-center gap-2">
+              <i data-lucide="cpu" class="text-red-500"></i> 实时动力学计算反馈
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <!-- 所需向心力 -->
+              <div class="bg-zinc-950/80 p-4 rounded-xl border border-zinc-800">
+                <span class="text-xs text-gray-400 block mb-1">所需向心力 $F_c$</span>
+                <span id="calc-fc" class="text-xl font-mono font-black text-blue-400">21,432 N</span>
+                <div class="text-[10px] text-gray-500 mt-1">公式: $\frac{mv^2}{r}$</div>
+              </div>
+              <!-- 最大抓地力 -->
+              <div class="bg-zinc-950/80 p-4 rounded-xl border border-zinc-800">
+                <span class="text-xs text-gray-400 block mb-1">最大可用抓地力 $F_{f}$</span>
+                <span id="calc-ff" class="text-xl font-mono font-black text-purple-400">17,640 N</span>
+                <div class="text-[10px] text-gray-500 mt-1">公式: $\mu(mg + F_{down})$</div>
+              </div>
+              <!-- 物理状态指示灯 -->
+              <div id="status-card" class="bg-emerald-950/30 p-4 rounded-xl border border-emerald-900/50 flex flex-col justify-center items-center">
+                <span class="text-xs text-emerald-400 font-bold uppercase tracking-wider mb-1">过弯物理状态</span>
+                <span id="status-text" class="text-2xl font-black text-emerald-500 tracking-wider">安全通过</span>
+              </div>
+            </div>
+
+            <!-- 向心力 vs 抓地力 进度条对比 -->
+            <div class="space-y-3 bg-zinc-950/50 p-4 rounded-xl border border-zinc-800">
+              <div>
+                <div class="flex justify-between text-xs text-gray-400 mb-1">
+                  <span>所需维持转弯的力 $F_c$ (动力需求)</span>
+                  <span id="pct-fc-val" class="font-bold">100%</span>
+                </div>
+                <div class="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
+                  <div id="bar-fc" class="bg-blue-500 h-full transition-all duration-300" style="width: 60%"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs text-gray-400 mb-1">
+                  <span>轮胎能提供的极限摩擦力 $F_f$ (物理上限)</span>
+                  <span id="pct-ff-val" class="font-bold">120%</span>
+                </div>
+                <div class="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
+                  <div id="bar-ff" class="bg-purple-500 h-full transition-all duration-300" style="width: 72%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Canvas 运动轨迹可视化渲染器 -->
+          <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 flex flex-col flex-grow min-h-[350px]">
+            <div class="flex justify-between items-center mb-4">
+              <h4 class="text-base font-bold text-gray-200 flex items-center gap-2">
+                <i data-lucide="eye" class="text-red-500"></i> 弯道轨迹实时演算 (物理引擎模拟)
+              </h4>
+              <button id="btn-replay" class="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs font-bold rounded-lg flex items-center gap-1 transition-all">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i> 重新模拟跑一圈
+              </button>
+            </div>
+
+            <div class="relative bg-zinc-950 rounded-xl border border-zinc-800 overflow-hidden flex-grow flex items-center justify-center">
+              <canvas id="track-canvas" class="block w-full h-full max-h-[350px]"></canvas>
+              
+              <!-- 实时警告小弹窗 -->
+              <div id="canvas-warning" class="hidden absolute top-4 left-4 right-4 bg-red-950/90 border border-red-500/50 p-3 rounded-lg flex items-center gap-3 animate-pulse">
+                <span class="p-1.5 bg-red-600 rounded-full text-white"><i data-lucide="alert-triangle" class="w-4 h-4"></i></span>
+                <div>
+                  <h5 class="text-xs font-black text-red-400">物理极限突破：赛车失控滑出！</h5>
+                  <p class="text-[10px] text-red-300">所需向心力（向内维持弯道）大于轮胎与地面能提供的最大侧向静摩擦力。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 模块二：核心力学对照知识库 ================= -->
+      <section id="sec-theory" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+        <!-- 基础物理对照 1: 空气动力学 -->
+        <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 hover:border-red-500/30 transition-all duration-300 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start mb-4">
+              <span class="px-2.5 py-1 bg-red-600/10 text-red-500 border border-red-600/20 text-xs font-bold rounded-full">Aerodynamics</span>
+              <span class="text-xs font-mono text-gray-500">经典力学 · 流体力学</span>
+            </div>
+            <h4 class="text-xl font-bold text-gray-100 mb-2 flex items-center gap-2">
+              空气动力学与下压力 (Downforce)
+            </h4>
+            <p class="text-sm text-gray-400 mb-4 leading-relaxed">
+              法拉利极其注重车身的“风洞设计”。赛车的前翼和尾翼，其截面形状与飞机机翼正好相反（倒置机翼）。当空气流过时，车底气流快（压力小），车顶气流慢（压力大），利用**伯努利原理**在垂直方向产生向下的净压力，称为**下压力**。
+            </p>
+            <div class="bg-zinc-950 p-4 rounded-xl border border-zinc-800 mb-4 font-mono">
+              <div class="text-xs text-gray-400 mb-1">📖 流体动力学关键公式:</div>
+              <div id="formula-aero" class="text-base text-red-400 text-center py-2">$F_d = \frac{1}{2} C_d \rho A v^2$</div>
+              <p class="text-[11px] text-gray-500">
+                下压力与速度的**平方**成正比！这就是为什么速度越快，法拉利抱地越稳。
+              </p>
+            </div>
+          </div>
+          <div class="p-4 bg-zinc-950/50 rounded-xl border border-zinc-800/80">
+            <h5 class="text-xs font-bold text-red-400 mb-1">🚗 法拉利黑科技设计：</h5>
+            <p class="text-xs text-gray-300">
+              <strong>S-Duct气流通道</strong>：法拉利F1赛车前鼻翼特有的空气通道，将流经车底的低能气流引导至车顶，极大提升车头下压力，同时大幅削减前方迎面风阻。
+            </p>
+          </div>
+        </div>
+
+        <!-- 基础物理对照 2: 摩擦力学 -->
+        <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 hover:border-red-500/30 transition-all duration-300 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start mb-4">
+              <span class="px-2.5 py-1 bg-purple-600/10 text-purple-400 border border-purple-600/20 text-xs font-bold rounded-full">Friction & Grip</span>
+              <span class="text-xs font-mono text-gray-500">力学与表面工程</span>
+            </div>
+            <h4 class="text-xl font-bold text-gray-100 mb-2 flex items-center gap-2">
+              轮胎摩擦力与抓地之谜 (Grip)
+            </h4>
+            <p class="text-sm text-gray-400 mb-4 leading-relaxed">
+              在日常生活中，我们学习最大静摩擦力 $f_{max} = \mu F_N$。对于普通车辆，$F_N$ 只能是车辆自身的重力 $mg$。若想增大抓地力，只能通过增加车重，然而根据牛顿第二定律 $a = \frac{F}{m}$，车重增加会使加速度骤降。法拉利通过下压力，无需增重即可成倍提高 $F_N$！
+            </p>
+            <div class="bg-zinc-950 p-4 rounded-xl border border-zinc-800 mb-4 font-mono">
+              <div class="text-xs text-gray-400 mb-1">📖 极限摩擦抓地力公式:</div>
+              <div id="formula-friction" class="text-base text-purple-400 text-center py-2">$F_{f} = \mu (m \cdot g + F_{down})$</div>
+              <p class="text-[11px] text-gray-500">
+                赛车在不改变车辆惯性（质量 $m$）的前提下，依靠下压力获得了几吨重的虚拟抓地力。
+              </p>
+            </div>
+          </div>
+          <div class="p-4 bg-zinc-950/50 rounded-xl border border-zinc-800/80">
+            <h5 class="text-xs font-bold text-purple-400 mb-1">🚗 法拉利黑科技设计：</h5>
+            <p class="text-xs text-gray-300">
+              <strong>光头热熔胎 (Slicks)</strong>：赛车胎没有任何花纹。在高速摩擦下轮胎表面温度达 $100^\circ\text{C}$，橡胶表面呈半熔融粘性状态，使化学粘附系数 $\mu$ 瞬间飙升至 $1.5 \sim 1.8$。
+            </p>
+          </div>
+        </div>
+
+        <!-- 基础物理对照 3: 牛顿第二定律与转动惯量 -->
+        <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 hover:border-red-500/30 transition-all duration-300 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start mb-4">
+              <span class="px-2.5 py-1 bg-amber-600/10 text-amber-500 border border-amber-600/20 text-xs font-bold rounded-full">Inertia & Mass</span>
+              <span class="text-xs font-mono text-gray-500">牛顿动力学</span>
+            </div>
+            <h4 class="text-xl font-bold text-gray-100 mb-2 flex items-center gap-2">
+              碳纤维轻量化与惯性控制
+            </h4>
+            <p class="text-sm text-gray-400 mb-4 leading-relaxed">
+              根据牛顿第二定律 $F = ma$，相同的推力下，质量越小，加速度越大。更关键的是，赛车在过弯时的转向响应，取决于其**绕垂直轴转动惯量**的大小。转动惯量公式 $I = \sum m_i r_i^2$ 告诉我们，质量越远离旋转中心，转弯响应越慢。
+            </p>
+            <div class="bg-zinc-950 p-4 rounded-xl border border-zinc-800 mb-4 font-mono">
+              <div class="text-xs text-gray-400 mb-1">📖 牛顿第二定律与转动惯量:</div>
+              <div id="formula-inertia" class="text-base text-amber-400 text-center py-2">$a = \frac{F}{m} \quad \text{与} \quad I = \int r^2 dm$</div>
+              <p class="text-[11px] text-gray-500">
+                减轻重量并使质量集中在质心，可以极大减小惯性与转动惯量，让车身如闪电般灵敏。
+              </p>
+            </div>
+          </div>
+          <div class="p-4 bg-zinc-950/50 rounded-xl border border-zinc-800/80">
+            <h5 class="text-xs font-bold text-amber-400 mb-1">🚗 法拉利黑科技设计：</h5>
+            <p class="text-xs text-gray-300">
+              <strong>中置后驱（Mid-engine Layout）</strong>：法拉利经典的将重型 V8/V12 发动机安放在驾驶座舱后面、后轴前面。这种质量集中配置将转动惯量降至极低，成就了极致的过弯响应。
+            </p>
+          </div>
+        </div>
+
+        <!-- 基础物理对照 4: 能量守恒定律 -->
+        <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 hover:border-red-500/30 transition-all duration-300 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start mb-4">
+              <span class="px-2.5 py-1 bg-blue-600/10 text-blue-400 border border-blue-600/20 text-xs font-bold rounded-full">Work & Energy</span>
+              <span class="text-xs font-mono text-gray-500">热力学与电磁感应</span>
+            </div>
+            <h4 class="text-xl font-bold text-gray-100 mb-2 flex items-center gap-2">
+              KERS与混动动能守恒转化
+            </h4>
+            <p class="text-sm text-gray-400 mb-4 leading-relaxed">
+              法拉利在赛道上必须面对巨大的动能转化。在刹车减速进弯时，赛车巨大的动能 $E_k = \frac{1}{2}mv^2$ 传统上会全部转化为刹车盘的红热内能（浪费的热能）。如今，法拉利混动技术能够在制动时，通过动能回收系统（KERS）实现逆向转化。
+            </p>
+            <div class="bg-zinc-950 p-4 rounded-xl border border-zinc-800 mb-4 font-mono">
+              <div class="text-xs text-gray-400 mb-1">📖 动能定理与能量守恒:</div>
+              <div id="formula-energy" class="text-base text-blue-400 text-center py-2">$W = \Delta E_k = E_{k2} - E_{k1}$</div>
+              <p class="text-[11px] text-gray-500">
+                减速时做功转化成的电能，在出弯时由电动机瞬间释放，提供额外的推力。
+              </p>
+            </div>
+          </div>
+          <div class="p-4 bg-zinc-950/50 rounded-xl border border-zinc-800/80">
+            <h5 class="text-xs font-bold text-blue-400 mb-1">🚗 法拉利黑科技设计：</h5>
+            <p class="text-xs text-gray-300">
+              <strong>MGU-K 动能电机系统</strong>：法拉利SF90 Stradale的混动架构中配备的高效动能电机，能在全力刹车时吸收数百匹马力强度的动能，完美转化并锁存在高倍率电池组中。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 模块三：工程师挑战赛 (Quiz) ================= -->
+      <section id="sec-quiz" class="hidden max-w-3xl mx-auto animate-fade-in">
+        <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 md:p-8">
+          
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <h3 class="text-2xl font-black text-red-500 flex items-center gap-2">
+                <i data-lucide="award"></i> 法拉利力学挑战赛
+              </h3>
+              <p class="text-sm text-gray-400">测测你是否具备成为顶级方程式赛车物理工程师的直觉！</p>
+            </div>
+            <div class="text-right">
+              <span class="text-xs text-gray-500 block">当前得分</span>
+              <span id="quiz-score" class="text-2xl font-mono font-black text-red-500">0 / 4</span>
+            </div>
+          </div>
+
+          <!-- 进度指示器 -->
+          <div class="flex gap-2 mb-6">
+            <div class="q-dot h-1.5 flex-grow rounded bg-red-600"></div>
+            <div class="q-dot h-1.5 flex-grow rounded bg-zinc-800"></div>
+            <div class="q-dot h-1.5 flex-grow rounded bg-zinc-800"></div>
+            <div class="q-dot h-1.5 flex-grow rounded bg-zinc-800"></div>
+          </div>
+
+          <!-- 问题展示面板 -->
+          <div id="quiz-container" class="bg-zinc-950/80 p-6 rounded-xl border border-zinc-800 mb-6 min-h-[180px]">
+            <!-- JS 动态注入 -->
+            <h4 id="quiz-question" class="text-lg font-bold mb-4 text-gray-100">问题加载中...</h4>
+            <div id="quiz-options" class="flex flex-col gap-3">
+              <!-- 选项按钮 -->
+            </div>
+          </div>
+
+          <!-- 解析反馈反馈弹窗 -->
+          <div id="quiz-feedback" class="hidden p-4 rounded-xl mb-6 border">
+            <div class="flex items-start gap-3">
+              <span id="feedback-icon" class="p-1 rounded-full text-white"></span>
+              <div>
+                <h5 id="feedback-title" class="font-bold text-sm">回答正确/错误</h5>
+                <p id="feedback-desc" class="text-xs text-gray-300 mt-1 leading-relaxed">详细物理学知识解析...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 控制下一步的按钮 -->
+          <div class="flex justify-between items-center">
+            <span id="quiz-index-text" class="text-xs text-gray-500">第 1 / 4 题</span>
+            <button id="btn-next-quiz" disabled class="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white font-bold text-sm rounded-lg transition-all flex items-center gap-1.5">
+              <span>下一题</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 页脚与物理直觉赋能板 -->
+    <footer class="bg-black/90 border-t border-zinc-900 mt-10 py-6">
+      <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
+        <div>
+          <p>© 2026 法拉利物理科普与教学实验室 (Under-18 Safe Educational Resource)</p>
+          <p class="mt-1 text-gray-600">本系统旨在通过超跑案例激发青少年的机械工程学及物理力学兴趣。</p>
+        </div>
+        <div class="flex gap-4">
+          <a href="#" class="hover:text-red-500 transition-colors">力学公式图集</a>
+          <a href="#" class="hover:text-red-500 transition-colors">探究课题PBL推荐</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- 自定义弹窗 (替代原本的浏览器alert) -->
+  <div id="custom-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm hidden">
+    <div class="bg-zinc-900 border-2 border-red-600 rounded-2xl max-w-md w-full p-6 text-center rose-red-glow">
+      <div class="inline-block p-3 rounded-full bg-red-600/20 text-red-500 mb-4">
+        <i data-lucide="check-circle-2" class="w-10 h-10"></i>
+      </div>
+      <h3 id="modal-title" class="text-lg font-bold text-gray-100 mb-2">提示信息</h3>
+      <p id="modal-desc" class="text-sm text-gray-400 mb-6 leading-relaxed">具体通知内容...</p>
+      <button onclick="closeModal()" class="w-full py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg transition-all">
+        我知道了
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // ================= 核心状态管理 =================
+    const m = 1000; // 赛车质量 (kg)
+    const g = 9.8;  // 重力加速度 (m/s^2)
+
+    let simState = {
+      speedKmh: 150,    // 速度 (km/h)
+      radius: 80,       // 弯道半径 (m)
+      downforceG: 0.5,  // 下压力倍数 (G)
+      mu: 1.2           // 静摩擦系数
+    };
+
+    // ================= 物理公式演算函数 =================
+    function calculatePhysics() {
+      // 速度单位换算 (km/h to m/s)
+      const v = simState.speedKmh / 3.6; 
+      
+      // 1. 计算向心力需求 F_c = m*v^2 / r
+      const Fc = (m * Math.pow(v, 2)) / simState.radius;
+
+      // 2. 计算空气垂直压力 F_down = downforceG * m * g
+      const Fdown = simState.downforceG * m * g;
+
+      // 3. 计算支持力 F_N = m * g + F_down
+      const FN = (m * g) + Fdown;
+
+      // 4. 计算最大静摩擦力 F_f = mu * F_N
+      const Ff = simState.mu * FN;
+
+      // 5. 计算安全率
+      const safetyFactor = Ff / Fc;
+      const isSafe = safetyFactor >= 1.0;
+
+      return {
+        v,
+        Fc,
+        Fdown,
+        FN,
+        Ff,
+        safetyFactor,
+        isSafe
+      };
+    }
+
+    // ================= 页面初始化、UI交互绑定 =================
+    window.onload = function() {
+      // 初始化 Lucide 图标
+      lucide.createIcons();
+
+      // 初始化 LaTeX 公式渲染
+      renderLatex();
+
+      // “点火启动” 交互逻辑
+      const startBtn = document.getElementById('start-btn');
+      const needle = document.getElementById('gauge-needle');
+      
+      startBtn.addEventListener('click', () => {
+        // 旋转转速表指针做引擎轰鸣动作
+        needle.classList.add('revving');
+        
+        // 1.5秒后动画转场
+        setTimeout(() => {
+          const splash = document.getElementById('splash-screen');
+          const mainApp = document.getElementById('main-app');
+          
+          splash.classList.add('opacity-0', 'pointer-events-none');
+          mainApp.classList.remove('hidden');
+          
+          // 等待微小延迟让淡入动画更自然
+          setTimeout(() => {
+            mainApp.classList.add('opacity-100');
+            // 初始化画布与动画
+            initTrackCanvas();
+            updateSimulation();
+          }, 50);
+        }, 1500);
+      });
+
+      // 绑定滑块元素
+      setupSliders();
+
+      // 绑定重新模拟按钮
+      document.getElementById('btn-replay').addEventListener('click', () => {
+        resetSimulationAnimation();
+      });
+
+      // 初始化答题库
+      initQuiz();
+    };
+
+    // LaTeX 渲染封装
+    function renderLatex() {
+      if (window.katex) {
+        document.querySelectorAll('span, p, div').forEach(node => {
+          if (node.textContent.includes('$') && !node.classList.contains('katex-ignore')) {
+            // 解析单行和行内 LaTeX
+            const text = node.innerHTML;
+            const updated = text.replace(/\$\$([\s\S]+?)\$\$/g, (m, code) => katex.renderToString(code, { displayMode: true }));
+            node.innerHTML = updated.replace(/\$([\s\S]+?)\$/g, (m, code) => katex.renderToString(code, { displayMode: false }));
+          }
+        });
+      }
+    }
+
+    // ================= 交互滑块控制核心 =================
+    function setupSliders() {
+      const sliders = [
+        { id: 'slide-speed', valId: 'val-speed', key: 'speedKmh', suffix: ' km/h' },
+        { id: 'slide-radius', valId: 'val-radius', key: 'radius', suffix: ' m' },
+        { id: 'slide-downforce', valId: 'val-downforce', key: 'downforceG', suffix: ' G' },
+        { id: 'slide-mu', valId: 'val-mu', key: 'mu', suffix: '' }
+      ];
+
+      sliders.forEach(slider => {
+        const elem = document.getElementById(slider.id);
+        const valElem = document.getElementById(slider.valId);
+
+        elem.addEventListener('input', (e) => {
+          const value = parseFloat(e.target.value);
+          simState[slider.key] = value;
+          
+          // 更新文本显示
+          valElem.textContent = value.toFixed(slider.id === 'slide-downforce' || slider.id === 'slide-mu' ? 2 : 0) + slider.suffix;
+          
+          // 特殊更新：下压力的等效重量
+          if (slider.id === 'slide-downforce') {
+            document.getElementById('downforce-kg').textContent = Math.round(value * 1000);
+          }
+
+          // 触发实时重算与轨迹重绘
+          updateSimulation();
+        });
+      });
+    }
+
+    // ================= 实时物理模拟与仪表盘绘制 =================
+    let physicsResult = {};
+
+    function updateSimulation() {
+      physicsResult = calculatePhysics();
+
+      // 1. 更新数值回显
+      document.getElementById('calc-fc').innerHTML = `${Math.round(physicsResult.Fc).toLocaleString()} N`;
+      document.getElementById('calc-ff').innerHTML = `${Math.round(physicsResult.Ff).toLocaleString()} N`;
+
+      // 2. 更新向心力 vs 摩擦力进度条
+      const maxForceForScale = Math.max(physicsResult.Fc, physicsResult.Ff, 5000);
+      const fcPct = Math.min((physicsResult.Fc / maxForceForScale) * 100, 100);
+      const ffPct = Math.min((physicsResult.Ff / maxForceForScale) * 100, 100);
+
+      document.getElementById('bar-fc').style.width = `${fcPct}%`;
+      document.getElementById('bar-ff').style.width = `${ffPct}%`;
+      document.getElementById('pct-fc-val').textContent = `${Math.round(fcPct)}%`;
+      document.getElementById('pct-ff-val').textContent = `${Math.round(ffPct)}%`;
+
+      // 如果超出物理极限，进度条变成红橙警示色
+      if (!physicsResult.isSafe) {
+        document.getElementById('bar-fc').className = 'bg-rose-600 h-full transition-all duration-300';
+      } else {
+        document.getElementById('bar-fc').className = 'bg-blue-500 h-full transition-all duration-300';
+      }
+
+      // 3. 更新安全指示牌
+      const statusCard = document.getElementById('status-card');
+      const statusText = document.getElementById('status-text');
+      const canvasWarning = document.getElementById('canvas-warning');
+
+      if (physicsResult.isSafe) {
+        statusCard.className = "bg-emerald-950/40 p-4 rounded-xl border border-emerald-500/30 flex flex-col justify-center items-center";
+        statusText.className = "text-xl font-black text-emerald-400 tracking-wider";
+        statusText.innerHTML = `<span class="flex items-center gap-1"><i data-lucide="check-circle" class="w-5 h-5"></i> 完美过弯</span>`;
+        canvasWarning.classList.add('hidden');
+      } else {
+        statusCard.className = "bg-rose-950/40 p-4 rounded-xl border border-rose-500/30 flex flex-col justify-center items-center";
+        statusText.className = "text-xl font-black text-rose-500 tracking-wider text-glow animate-pulse";
+        statusText.innerHTML = `<span class="flex items-center gap-1"><i data-lucide="alert-triangle" class="w-5 h-5"></i> 漂移打滑</span>`;
+        canvasWarning.classList.remove('hidden');
+      }
+
+      // 重新载入局部 Lucide 图标以支持动态插入的图标
+      lucide.createIcons();
+
+      // 同步触发跑车动画轨迹的实时校准
+      triggerTrackRedraw();
+    }
+
+    // ================= 2D 物理轨迹 Canvas 渲染引擎 =================
+    let canvas, ctx;
+    let animFrameId;
+    let carProgress = 0; // 0 到 100 % 跑车行驶进度
+    let carIsDrifting = false;
+
+    function initTrackCanvas() {
+      canvas = document.getElementById('track-canvas');
+      ctx = canvas.getContext('2d');
+      
+      // 监听视口变化
+      resizeCanvas();
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        triggerTrackRedraw();
+      });
+
+      // 启动循环渲染进程
+      runAnimationLoop();
+    }
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth * window.devicePixelRatio;
+      canvas.height = Math.max(container.clientHeight, 300) * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+
+    function resetSimulationAnimation() {
+      carProgress = 0;
+      carIsDrifting = false;
+    }
+
+    function triggerTrackRedraw() {
+      // 只要改变了滑块参数，就重置动画让车辆重新跑一圈展示轨迹变化
+      carProgress = 0;
+      carIsDrifting = false;
+    }
+
+    function runAnimationLoop() {
+      function animate() {
+        drawTrackScene();
+        animFrameId = requestAnimationFrame(animate);
+      }
+      animate();
+    }
+
+    function drawTrackScene() {
+      if (!canvas) return;
+      const width = canvas.width / window.devicePixelRatio;
+      const height = canvas.height / window.devicePixelRatio;
+
+      // 1. 清空画布
+      ctx.clearRect(0, 0, width, height);
+
+      // 2. 绘制跑道弯道背景 (模拟一个右转大弯道)
+      // 赛车轨迹中心：右下角 (width - 50, height - 50) 为圆心
+      const rScale = Math.max(simState.radius, 40) * 1.2; // 物理半径到像素的缩放
+      const centerX = 50; 
+      const centerY = height - 50;
+
+      // 绘制路肩 (红白相间的减速带，极具赛道风)
+      ctx.lineWidth = 25;
+      ctx.strokeStyle = '#222'; // 赛道柏油色
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, rScale, -Math.PI / 2, 0);
+      ctx.stroke();
+
+      // 绘制跑道白线边沿
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, rScale - 12, -Math.PI / 2, 0);
+      ctx.arc(centerX, centerY, rScale + 12, -Math.PI / 2, 0);
+      ctx.stroke();
+
+      // 绘制中心红白相间路基
+      ctx.lineWidth = 3;
+      ctx.setLineDash([8, 8]);
+      ctx.strokeStyle = '#E51A2E';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, rScale, -Math.PI / 2, 0);
+      ctx.stroke();
+      ctx.setLineDash([]); // 还原实线
+
+      // 3. 计算赛车坐标位置
+      // 我们用角度表示进度，从 -Math.PI/2 (起点，车头朝右) 演变到 0 (弯道终点)
+      const startAngle = -Math.PI / 2;
+      const endAngle = 0;
+      const totalAngle = endAngle - startAngle;
+
+      let currentAngle = startAngle + (totalAngle * (carProgress / 100));
+      
+      let carX = centerX + rScale * Math.cos(currentAngle);
+      let carY = centerY + rScale * Math.sin(currentAngle);
+
+      // 计算车辆是否滑出赛道
+      // 如果物理算得是不安全的，且进度过半(转弯力越来越大时)，赛车就开始沿切线失控甩出！
+      const driftTriggerProgress = 45; // 进度45%处开始滑出
+      if (!physicsResult.isSafe && carProgress > driftTriggerProgress) {
+        carIsDrifting = true;
+        // 算出失控点的角度和位置
+        const criticalAngle = startAngle + (totalAngle * (driftTriggerProgress / 100));
+        const critX = centerX + rScale * Math.cos(criticalAngle);
+        const critY = centerY + rScale * Math.sin(criticalAngle);
+        
+        // 计算切线方向向量
+        const tangentX = -Math.sin(criticalAngle);
+        const tangentY = Math.cos(criticalAngle);
+
+        // 随着进度增加，车辆沿切线向外直线滑动得越来越远
+        const driftFactor = (carProgress - driftTriggerProgress) * 3.5;
+        carX = critX + (tangentX * (carProgress - driftTriggerProgress) * 2) + (Math.cos(criticalAngle) * driftFactor * 0.4);
+        carY = critY + (tangentY * (carProgress - driftTriggerProgress) * 2) + (Math.sin(criticalAngle) * driftFactor * 0.4);
+      }
+
+      // 4. 绘制赛车 (红色的流线型小法拉利)
+      ctx.save();
+      ctx.translate(carX, carY);
+      
+      // 车辆转向角度 (切线角)
+      let headingAngle = currentAngle + Math.PI / 2;
+      if (carIsDrifting) {
+        // 如果失控，产生车身旋转/打转效果 (物理上赛车失控会陀螺式自转)
+        headingAngle += (carProgress * 0.1); 
+      }
+      ctx.rotate(headingAngle);
+
+      // 绘制火焰喷气 (速度过快时有特效)
+      if (simState.speedKmh > 180) {
+        const flameLength = (simState.speedKmh / 320) * 20;
+        const grad = ctx.createLinearGradient(0, 15, 0, 15 + flameLength);
+        grad.addColorStop(0, '#E51A2E');
+        grad.addColorStop(0.5, '#F59E0B');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(-4, 12);
+        ctx.lineTo(4, 12);
+        ctx.lineTo(0, 12 + flameLength);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // 车身底盘底色
+      ctx.fillStyle = '#111';
+      ctx.beginPath();
+      ctx.roundRect(-8, -16, 16, 32, 4);
+      ctx.fill();
+
+      // 法拉利玫瑰红外壳
+      ctx.fillStyle = '#E51A2E';
+      ctx.beginPath();
+      ctx.roundRect(-6, -14, 12, 28, 3);
+      ctx.fill();
+
+      // 赛车黑色轮圈四个
+      ctx.fillStyle = '#000';
+      ctx.fillRect(-9, -12, 2, 6); // 左前轮
+      ctx.fillRect(7, -12, 2, 6);  // 右前轮
+      ctx.fillRect(-9, 6, 2, 7);   // 左后轮
+      ctx.fillRect(7, 6, 2, 7);    // 右后轮
+
+      // 前翼黄/白色细纹装饰
+      ctx.fillStyle = '#F59E0B';
+      ctx.fillRect(-7, -14, 14, 2);
+
+      // 挡风玻璃与碳纤维座舱
+      ctx.fillStyle = '#1e1e1e';
+      ctx.beginPath();
+      ctx.arc(0, -2, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+
+      // 5. 进度自增循环
+      if (carProgress < 100) {
+        // 速度越快，动画步进越快
+        const step = (simState.speedKmh / 150) * 0.8 + 0.3;
+        carProgress = Math.min(carProgress + step, 100);
+      } else {
+        // 到底了，停留一会，自动重跑
+        setTimeout(() => {
+          if (carProgress >= 100) carProgress = 0;
+        }, 2000);
+      }
+
+      // 6. 绘制弯道半径、受力箭头标识 (增强物理科教性)
+      if (carProgress > 0 && carProgress < 100 && !carIsDrifting) {
+        // 绘制拉住赛车往中心的“摩擦向心力箭头” (紫色/蓝色)
+        ctx.strokeStyle = '#8B5CF6';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(carX, carY);
+        // 指向弯道圆心
+        const vectorLen = (physicsResult.Fc / 30000) * 50; // 缩放因子
+        const dirX = (centerX - carX) / Math.hypot(centerX - carX, centerY - carY);
+        const dirY = (centerY - carY) / Math.hypot(centerX - carX, centerY - carY);
+        ctx.lineTo(carX + dirX * vectorLen, carY + dirY * vectorLen);
+        ctx.stroke();
+
+        // 箭头帽
+        ctx.fillStyle = '#8B5CF6';
+        ctx.beginPath();
+        ctx.arc(carX + dirX * vectorLen, carY + dirY * vectorLen, 4, 0, Math.PI*2);
+        ctx.fill();
+
+        // 受力标注文字
+        ctx.fillStyle = '#a78bfa';
+        ctx.font = '10px monospace';
+        ctx.fillText(`F_f (向心摩擦力)`, carX + dirX * 15 - 15, carY + dirY * 15 - 10);
+      }
+    }
+
+    // ================= 模块导航卡切换 =================
+    function switchTab(tabId) {
+      const tabs = ['sim', 'theory', 'quiz'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-${t}`);
+        const sec = document.getElementById(`sec-${t}`);
+        if (t === tabId) {
+          btn.className = "px-4 py-2 rounded-lg text-sm font-bold transition-all bg-red-600 text-white shadow-lg shadow-red-600/20";
+          sec.classList.remove('hidden');
+        } else {
+          btn.className = "px-4 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white hover:bg-gray-800 transition-all";
+          sec.classList.add('hidden');
+        }
+      });
+    }
+
+    // ================= 模块三：工程师挑战赛 (Quiz 逻辑) =================
+    const quizData = [
+      {
+        question: "1. 为什么法拉利需要巨大的尾翼和复杂的车底通道，而不是像普通跑车那样平整？",
+        options: [
+          { text: "A. 为了增加车身重量，增大对路面的垂直压力。", correct: false, reason: "错误。增加车重会增大惯性（$m$），使赛车的加速度变慢。" },
+          { text: "B. 利用伯努利原理和倒置机翼设计产生空气下压力，不增重即可极大地提供额外抓地力。", correct: true, reason: "完全正确！这使得赛车在转弯时能承受更高的摩擦向心力，从而获得极高的转弯极限速度！" },
+          { text: "C. 纯粹为了美观和好看，对物理性能没有多大帮助。", correct: false, reason: "错误。在F1賽车中，每一根线条都经过了千万次风洞计算，美学永远要服从空气动力学。" }
+        ],
+        explain: "法拉利的“倒置机翼”产生的空气下压力 $F_{down}$ 能够在保持车辆质量 $m$ 不变的条件下，成倍提高法向支持力 $F_N = mg + F_{down}$，由此极大的拓宽了极限摩擦力的天花板。"
+      },
+      {
+        question: "2. 如果赛车在湿滑的雨天比赛，轮胎静摩擦系数从 $\\mu = 1.2$ 降到了 $\\mu = 0.6$。在弯道半径不变的情况下，极限过弯速度会发生什么变化？",
+        options: [
+          { text: "A. 极限速度会减半（变为原先的 $50\\%$）。", correct: false, reason: "接近但不对。向心力与速度的平方成正比，请再仔细算一下速度和摩擦系数的关系。" },
+          { text: "B. 极限速度将减少到约原先的 $70\\.7\\%$ ($1/\\sqrt{2}$)。", correct: true, reason: "非常优秀！" },
+          { text: "C. 极限速度没有任何变化，下压力可以完全弥补抓地力失散。", correct: false, reason: "不对。摩擦系数直接乘在整个支持力外面，其减半必然导致摩擦极限成比例减小。" }
+        ],
+        explain: "因为转弯极限下 $v^2 \\propto \\mu$。所以极限速度 $v \\propto \\sqrt{\\mu}$。若摩擦力折半，极限速度会降低到原先的 $\\sqrt{0.5} \\approx 70.7\\%$。"
+      },
+      {
+        question: "3. 为什么法拉利极力在引擎、车体等处广泛采用价格高昂的碳纤维材料？",
+        options: [
+          { text: "A. 碳纤维材料比钢材更坚固，撞击时更不易发生热能转化。", correct: false, reason: "安全是其优点，但不是其主要的运动物理学原因。" },
+          { text: "B. 减少整车质量 $m$。推力不变时，根据 $a = F/m$，能提供极大的加速度并降低惯性。", correct: true, reason: "答对了！低质量是高动力学反应（高瞬时加速度、更小转动惯量）的灵魂。" },
+          { text: "C. 为了增加轮胎与地面的黏合性。", correct: false, reason: "错误。车重减轻理论上反而减小了重力带给轮胎的压力，我们需要靠下压力来补偿这部分压力，而非靠重力本身。" }
+        ],
+        explain: "根据牛顿第二定律 $F = ma$，车辆质量越低，同等推进力下能获得的瞬时加速度越高。同时由于惯性减小，变道和刹车响应也呈指数提升。"
+      },
+      {
+        question: "4. 法拉利动能回收系统（KERS）在刹车制动时，其核心的物理能量转换流程是怎样的？",
+        options: [
+          { text: "A. 动能 $\\rightarrow$ 电磁感应（电能储存） $\\rightarrow$ 出弯时转化为马达辅助机械能。", correct: true, reason: "教科书般的动能定理与电磁感应结合！" },
+          { text: "B. 动能 $\\rightarrow$ 热能（刹车盘升温） $\\rightarrow$ 由热能再转化为机械能。", correct: false, reason: "热能是非常难高比例逆向收集并利用的废能量（符合热力学第二定律），这也是传统赛车的能量流失处。" },
+          { text: "C. 重力势能 $\\rightarrow$ 动能 $\\rightarrow$ 化学能。", correct: false, reason: "在水平赛道上，重力势能几乎是不改变的。" }
+        ],
+        explain: "在减速进弯时，动能定理 $W = \\Delta E_k$ 促使制动器中的电机充当发电机。通过切割磁感线产生感应电流，逆向给高压电池充电，在下一段直道全力加速时释放电能。"
+      }
+    ];
+
+    let currentQuizIndex = 0;
+    let userScore = 0;
+
+    function initQuiz() {
+      showQuestion(0);
+      
+      const nextBtn = document.getElementById('btn-next-quiz');
+      nextBtn.addEventListener('click', () => {
+        if (currentQuizIndex < quizData.length - 1) {
+          currentQuizIndex++;
+          showQuestion(currentQuizIndex);
+        } else {
+          // 已经完成
+          openModal("挑战圆满成功！", `恭喜你完成法拉利力学挑战赛！你一共答对了 ${userScore} 道题目。你已经初步具备了赛车空气动力学工程师的物理解题直觉，继续加油！🏎️💨`);
+          currentQuizIndex = 0;
+          userScore = 0;
+          document.getElementById('quiz-score').textContent = `0 / ${quizData.length}`;
+          showQuestion(0);
+        }
+      });
+    }
+
+    function showQuestion(index) {
+      const q = quizData[index];
+      document.getElementById('quiz-question').innerHTML = q.question;
+      
+      const optionsContainer = document.getElementById('quiz-options');
+      optionsContainer.innerHTML = '';
+
+      const feedbackBox = document.getElementById('quiz-feedback');
+      feedbackBox.classList.add('hidden'); // 隐藏上一题的解析
+
+      const nextBtn = document.getElementById('btn-next-quiz');
+      nextBtn.disabled = true; // 必须要选择答案后才能继续
+      if (index === quizData.length - 1) {
+        nextBtn.innerHTML = `<span>提交最终结果</span> <i data-lucide="award" class="w-4 h-4"></i>`;
+      } else {
+        nextBtn.innerHTML = `<span>下一题</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>`;
+      }
+
+      // 更新页脚进度文字
+      document.getElementById('quiz-index-text').textContent = `第 ${index + 1} / ${quizData.length} 题`;
+
+      // 更新进度小圆点
+      const dots = document.querySelectorAll('.q-dot');
+      dots.forEach((dot, dIdx) => {
+        if (dIdx === index) {
+          dot.className = "q-dot h-1.5 flex-grow rounded bg-red-600 rose-red-glow";
+        } else if (dIdx < index) {
+          dot.className = "q-dot h-1.5 flex-grow rounded bg-zinc-600";
+        } else {
+          dot.className = "q-dot h-1.5 flex-grow rounded bg-zinc-800";
+        }
+      });
+
+      // 动态注入选项按钮
+      q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = "w-full p-4 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 rounded-xl text-left text-sm transition-all duration-300 hover:border-red-500/50 flex items-center justify-between group";
+        btn.innerHTML = `
+          <span class="text-gray-200 group-hover:text-white">${opt.text}</span>
+          <span class="hidden opacity-0 group-hover:opacity-100 text-red-500 transition-opacity"><i data-lucide="check" class="w-4 h-4"></i></span>
+        `;
+
+        btn.onclick = () => {
+          // 禁止二次重复点击本题选项
+          const allButtons = optionsContainer.querySelectorAll('button');
+          allButtons.forEach(b => b.disabled = true);
+
+          // 开启解析视窗
+          feedbackBox.classList.remove('hidden');
+          const title = document.getElementById('feedback-title');
+          const desc = document.getElementById('feedback-desc');
+          const icon = document.getElementById('feedback-icon');
+
+          if (opt.correct) {
+            userScore++;
+            document.getElementById('quiz-score').textContent = `${userScore} / ${quizData.length}`;
+            feedbackBox.className = "p-4 rounded-xl mb-6 border border-emerald-500/30 bg-emerald-950/20";
+            title.className = "font-bold text-sm text-emerald-400";
+            title.innerHTML = "🎉 回答完全正确！";
+            icon.className = "p-1.5 bg-emerald-600 rounded-full text-white";
+            icon.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i>`;
+            desc.innerHTML = `<strong>解析:</strong> ${opt.reason}<br><br>${q.explain}`;
+          } else {
+            feedbackBox.className = "p-4 rounded-xl mb-6 border border-rose-500/30 bg-rose-950/20";
+            title.className = "font-bold text-sm text-rose-400";
+            title.innerHTML = "❌ 回答错误，物理逻辑不符。";
+            icon.className = "p-1.5 bg-rose-600 rounded-full text-white";
+            icon.innerHTML = `<i data-lucide="x" class="w-4 h-4"></i>`;
+            desc.innerHTML = `<strong>解析:</strong> ${opt.reason}<br><br>${q.explain}`;
+            // 高亮标记正确选项
+            btn.className = "w-full p-4 bg-rose-950/20 border border-rose-500/40 rounded-xl text-left text-sm";
+          }
+
+          // 重新激活下一步按钮
+          nextBtn.disabled = false;
+          lucide.createIcons();
+          renderLatex();
+        };
+
+        optionsContainer.appendChild(btn);
+      });
+
+      lucide.createIcons();
+      renderLatex();
+    }
+
+    // ================= 自定义非阻塞通知弹窗 =================
+    function openModal(title, desc) {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-desc').innerHTML = desc;
+      document.getElementById('custom-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('custom-modal').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
